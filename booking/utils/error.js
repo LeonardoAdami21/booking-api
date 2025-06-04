@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function getErrorMessage(statusCode, language = "pt-br") {
+export function getErrorMessage(statusCode, language = "pt-BR") {
   try {
     const errorFile = path.join(__dirname, "error", `${language}.json`);
     const errors = JSON.parse(fs.readFileSync(errorFile, "utf8"));

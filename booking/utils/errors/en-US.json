@@ -1,0 +1,9 @@
+{
+  "E001": "Method not allowed. Only POST is accepted.",
+  "E002": "Invalid parameters. Field 'type' is required.",
+  "E003": "Invalid type. Accepted types: catalog, business, channel.",
+  "E004": "API key is required.",
+  "E005": "Invalid API key.",
+  "E006": "Internal server error.",
+  "E007": "Service unavailable."
+}
