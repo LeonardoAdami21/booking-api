@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import formbody from "@fastify/formbody";
 import reservationRoutes from "./reservations/reservation.js";
 import { pool, testConnection } from "./config/database.js";
+import { getErrorMessage } from "./utils/error.js";
 
 const fastify = Fastify({
   logger: true,
@@ -17,7 +18,7 @@ fastify.decorate("mysql", pool);
 // Middleware para parsing JSON
 fastify.register(formbody);
 
-fastify.register(reservationRoutes, { prefix: "/api/v1" });
+fastify.register(reservationRoutes, { prefix: "/v2" });
 
 fastify.setErrorHandler((error, request, reply) => {
   const lang = request.headers["accept-language"]?.includes("pt")
