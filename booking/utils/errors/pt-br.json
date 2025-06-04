@@ -1,0 +1,98 @@
+{
+  "E000": {
+    "code": "E000",
+    "message": "Operação realizada com sucesso"
+  },
+  "E001": {
+    "code": "E001",
+    "message": "Data de início não pode ser no passado"
+  },
+  "E002": {
+    "code": "E002",
+    "message": "Data de fim deve ser posterior à data de início"
+  },
+  "E003": {
+    "code": "E003",
+    "message": "Dados obrigatórios não informados"
+  },
+  "E004": {
+    "code": "E004",
+    "message": "Reserva não encontrada"
+  },
+  "E005": {
+    "code": "E005",
+    "message": "Reserva já cancelada"
+  },
+  "E999": {
+    "code": "E999",
+    "message": "Erro interno do servidor"
+  },
+  "400": {
+    "code": "BAD_REQUEST",
+    "message": "Requisição inválida. Verifique os dados enviados."
+  },
+  "401": {
+    "code": "UNAUTHORIZED",
+    "message": "Acesso não autorizado."
+  },
+  "403": {
+    "code": "FORBIDDEN",
+    "message": "Acesso negado."
+  },
+  "404": {
+    "code": "NOT_FOUND",
+    "message": "Recurso não encontrado."
+  },
+  "409": {
+    "code": "CONFLICT",
+    "message": "Conflito de dados. O recurso já existe ou está em uso."
+  },
+  "422": {
+    "code": "VALIDATION_ERROR",
+    "message": "Dados de entrada inválidos."
+  },
+  "429": {
+    "code": "TOO_MANY_REQUESTS",
+    "message": "Muitas requisições. Tente novamente mais tarde."
+  },
+  "500": {
+    "code": "INTERNAL_SERVER_ERROR",
+    "message": "Erro interno do servidor. Tente novamente mais tarde."
+  },
+  "502": {
+    "code": "BAD_GATEWAY",
+    "message": "Erro de gateway. Serviço temporariamente indisponível."
+  },
+  "503": {
+    "code": "SERVICE_UNAVAILABLE",
+    "message": "Serviço temporariamente indisponível."
+  },
+  "INVALID_CHECK_IN_DATE": {
+    "code": "INVALID_CHECK_IN_DATE",
+    "message": "Data de check-in inválida. Não pode ser no passado."
+  },
+  "INVALID_DATE_RANGE": {
+    "code": "INVALID_DATE_RANGE",
+    "message": "Período de datas inválido. Check-out deve ser posterior ao check-in."
+  },
+  "ROOM_NOT_AVAILABLE": {
+    "code": "ROOM_NOT_AVAILABLE",
+    "message": "Quarto não disponível para as datas selecionadas."
+  },
+  "RESERVATION_NOT_FOUND": {
+    "code": "RESERVATION_NOT_FOUND",
+    "message": "Reserva não encontrada."
+  },
+  "INVALID_EMAIL": {
+    "code": "INVALID_EMAIL",
+    "message": "Endereço de email inválido."
+  },
+  "INVALID_PHONE": {
+    "code": "INVALID_PHONE",
+    "message": "Número de telefone inválido."
+  },
+  "MAX_GUESTS_EXCEEDED": {
+    "code": "MAX_GUESTS_EXCEEDED",
+    "message": "Número máximo de hóspedes excedido para este tipo de quarto."
+  }
+}
