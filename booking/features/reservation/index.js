@@ -1,10 +1,12 @@
+import fastify from "fastify";
 import { reservationSchema } from "../../schema/reservation.js";
 import { v4 as uuidv4 } from "uuid";
+import { loadErrorMessages } from "../../index.js";
 
-// Função para criar nova reserva
+// Função para criar nova reservas
 export default async function reservationRoutes(fastify, options) {
   fastify.post(
-    "/reservations",
+    "/reservation",
     {
       schema: {
         body: reservationSchema,
@@ -26,9 +28,11 @@ export default async function reservationRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
+      // Conecta ao banco de dados
       const connection = await fastify.mysql.getConnection();
-
+      const messages = await loadErrorMessages("pt-BR");
       try {
+        // Inicia a transação
         await connection.beginTransaction();
 
         const { business, reservation } = request.body;
@@ -44,8 +48,8 @@ export default async function reservationRoutes(fastify, options) {
             hash: null,
             version: null,
             reservation: null,
-            error: validateError.code,
-            message: validateError.message,
+            error: "E114",
+            message: messages["E114"],
           });
         }
 
@@ -58,29 +62,24 @@ export default async function reservationRoutes(fastify, options) {
         if (duplicateCheck) {
           await connection.rollback();
           return reply.status(409).send({
-            id: null,
+            id: duplicateCheck.IDMO, // Retorna o ID da reserva existente
             type: "reservation",
             business: business,
-            hash: null,
-            version: null,
+            hash: duplicateCheck.Hash || null, // Retorna o hash existente
+            version: duplicateCheck.Version || null, // Retorna a versão existente
             reservation: null,
-            error: "E003",
-            message: "Reserva já existe com este identificador",
+            error: "E115",
+            message: messages["E115"],
           });
         }
 
         const hash = generateHash();
-        const uniqueIdIndex = await generateUniqueIdIndex(
-          connection,
-          reservation.id,
-        );
 
         // Prepara os dados da reserva
         const reservationData = prepareReservationData(
           business,
           reservation,
           hash,
-          uniqueIdIndex,
         );
 
         // Insere a reserva (apenas uma vez)
@@ -91,20 +90,57 @@ export default async function reservationRoutes(fastify, options) {
 
         // Verifica se a inserção foi bem-sucedida
         if (!result.insertId) {
-          throw new Error("Falha na inserção da reserva");
+          return reply.status(500).send({
+            id: null,
+            type: "reservation",
+            business: business,
+            hash: null,
+            version: null,
+            reservation: null,
+            error: "E116",
+            message: messages["E116"],
+          });
+        }
+
+        // Resgata os dados completos da reserva inserida
+        const insertedReservation = await getInsertedReservation(
+          connection,
+          result.insertId,
+        );
+
+        if (!insertedReservation) {
+          await connection.rollback();
+          return reply.status(500).send({
+            id: null,
+            type: "reservation",
+            business: business,
+            hash: null,
+            version: null,
+            reservation: null,
+            error: "E116",
+            message: messages["E116"],
+          });
         }
 
         await connection.commit();
 
-        return reply.status(201).send({
-          id: result.insertId,
+        // Prepara o objeto de resposta final
+        const responseData = {
+          id: insertedReservation.IDMO, // USA O IDMO DA TABELA, NÃO O result.insertId
           type: "reservation",
           business: business,
           hash: hash,
           version: 1,
           reservation,
-          error: "E000",
-          message: "Reserva criada com sucesso",
+          error: "S121",
+          message: messages["S121"],
+        };
+
+        // Aqui você pode salvar no bucket usando o responseData
+        // await saveToBucket(responseData);
+
+        return reply.status(201).send({
+          ...responseData,
         });
       } catch (error) {
         await connection.rollback();
@@ -117,8 +153,8 @@ export default async function reservationRoutes(fastify, options) {
           hash: null,
           version: null,
           reservation: null,
-          error: "E999",
-          message: "Erro interno do servidor",
+          error: "E107",
+          message: messages["E107"],
         });
       } finally {
         connection.release();
@@ -127,27 +163,57 @@ export default async function reservationRoutes(fastify, options) {
   );
 }
 
-// Função para verificar duplicatas
+// Função corrigida para verificar duplicatas - retorna dados completos se encontrado
 async function checkDuplicateReservation(connection, identifier, business) {
   try {
     const [existing] = await connection.query(
-      "SELECT IDMO FROM `ORDER` WHERE Identifier = ? AND Business = ? LIMIT 1",
+      "SELECT IDMO, Hash, Version FROM `ORDER` WHERE Identifier = ? AND Business = ? LIMIT 1",
       [identifier, business],
     );
-    return existing.length > 0;
+    return existing.length > 0 ? existing[0] : null;
   } catch (error) {
-    fastify.log.error("Erro ao verificar duplicata:", error);
-    return false;
+    return reply.status(500).send({
+      id: null,
+      type: "reservation",
+      business: business,
+      hash: null,
+      version: null,
+      reservation: null,
+      error: "E117",
+      message: messages["E117"],
+    });
+  }
+}
+
+// Função para resgatar o IDMO após inserção
+async function getInsertedReservation(connection, insertId) {
+  try {
+    const [result] = await connection.query(
+      "SELECT IDMO, Business, Identifier, Hash, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
+      [insertId],
+    );
+    return result.length > 0 ? result[0] : null;
+  } catch (error) {
+    return reply.status(500).send({
+      id: null,
+      type: "reservation",
+      business: null,
+      hash: null,
+      version: null,
+      reservation: null,
+      error: "E118",
+      message: messages["E118"],
+    });
   }
 }
 
 function validateReservation(reservation) {
   // Validação básica de campos obrigatórios
   if (!reservation.identifier) {
-    return {
-      code: "E004",
-      message: "Identificador da reserva é obrigatório",
-    };
+    return reply.status(400).send({
+      error: "E112",
+      message: messages["E112"],
+    });
   }
 
   if (
@@ -155,10 +221,10 @@ function validateReservation(reservation) {
     !reservation.period.start ||
     !reservation.period.end
   ) {
-    return {
-      code: "E005",
-      message: "Período da reserva é obrigatório",
-    };
+    return reply.status(400).send({
+      error: "E113",
+      message: messages["E113"],
+    });
   }
 
   const startDate = new Date(reservation.period.start);
@@ -170,24 +236,24 @@ function validateReservation(reservation) {
   startDate.setHours(0, 0, 0, 0);
 
   if (startDate < today) {
-    return {
-      code: "E001",
-      message: "Data de início não pode ser no passado",
-    };
+    return reply.status(400).send({
+      error: "E110",
+      message: messages["E110"],
+    });
   }
 
   if (endDate <= startDate) {
-    return {
-      code: "E002",
-      message: "Data de fim deve ser posterior à data de início",
-    };
+    return reply.status(400).send({
+      error: "E111",
+      message: messages["E111"],
+    });
   }
 
   return null;
 }
 
 // Função para preparar os dados da reserva
-function prepareReservationData(business, reservation, hash, uniqueIdIndex) {
+function prepareReservationData(business, reservation, hash) {
   const version = 1;
   const now = new Date();
 
@@ -197,7 +263,6 @@ function prepareReservationData(business, reservation, hash, uniqueIdIndex) {
     reservation.expiresAt ? new Date(reservation.expiresAt) : null, // Expiration
     reservation.confirmation ? new Date(reservation.confirmation) : null, // Confirmation
     business, // Business
-    uniqueIdIndex, // IDIndex
     version, // Version
     reservation.identifier, // Identifier
     hash, // Hash
@@ -225,7 +290,7 @@ function prepareReservationData(business, reservation, hash, uniqueIdIndex) {
     reservation.manager?.id || null,
     reservation.manager ? getFullName(reservation.manager) : "",
 
-    // Attendant data (optional)
+    // Attendant data
     reservation.attendant?.id || null,
     reservation.attendant ? getFullName(reservation.attendant) : null,
 
@@ -237,17 +302,17 @@ function prepareReservationData(business, reservation, hash, uniqueIdIndex) {
     reservation.customer?.id || null,
     reservation.customer ? getFullName(reservation.customer) : "",
 
-    // Financial data
-    reservation.total?.service?.price || 0.0, // Price
-    reservation.total?.service?.discount || 0.0, // Discount
-    reservation.total?.service?.tax || 0.0, // Taxes
-    reservation.total?.service?.markup || 0.0, // Markup
-    reservation.total?.service?.commission || 0.0, // Commission
+    // Financial
+    reservation.total?.service?.price || 0.0,
+    reservation.total?.service?.discount || 0.0,
+    reservation.total?.service?.tax || 0.0,
+    reservation.total?.service?.markup || 0.0,
+    reservation.total?.service?.commission || 0.0,
     reservation.total?.service?.price || 0.0, // Cost
     0.0, // Rav
     reservation.total?.total || 0.0, // Total
 
-    // Additional info
+    // Extra info
     reservation.information || "",
     "", // Notes
   ];
@@ -266,58 +331,11 @@ function generateHash() {
   return uuidv4().replace(/-/g, "");
 }
 
-// Função melhorada para gerar IDIndex único
-async function generateUniqueIdIndex(connection, preferredId) {
-  // Se um ID preferido foi fornecido, tenta usá-lo primeiro
-  if (preferredId) {
-    const isAvailable = await checkIdIndexAvailability(connection, preferredId);
-    if (isAvailable) {
-      return preferredId;
-    }
-  }
-
-  // Gera um novo ID único
-  let attempts = 0;
-  const maxAttempts = 5;
-
-  while (attempts < maxAttempts) {
-    const newId = generateRandomId();
-    const isAvailable = await checkIdIndexAvailability(connection, newId);
-
-    if (isAvailable) {
-      return newId;
-    }
-
-    attempts++;
-  }
-
-  // Fallback: usar timestamp com um sufixo aleatório
-  return Date.now() + Math.floor(Math.random() * 1000);
-}
-
-// Função auxiliar para verificar disponibilidade do IDIndex
-async function checkIdIndexAvailability(connection, idIndex) {
-  try {
-    const [existing] = await connection.query(
-      "SELECT IDIndex FROM `ORDER` WHERE IDIndex = ? LIMIT 1",
-      [idIndex],
-    );
-    return existing.length === 0;
-  } catch (error) {
-    return false;
-  }
-}
-
-// Função para gerar ID aleatório
-function generateRandomId() {
-  return Math.floor(Math.random() * 900000) + 100000; // 6 dígitos
-}
-
 // Query de inserção corrigida
 function getInsertQuery() {
   return `INSERT INTO \`ORDER\` (
     Created, Imported, Expiration, Confirmation,
-    Business, IDIndex, Version, Identifier, Hash, Language,
+    Business, Version, Identifier, Hash, Language,
     Status, Type, StartDate, EndDate, Channel,
     Locator, IDCompany, Company, IDClient, Client,
     IDAgent, Agent, IDManager, Manager, IDAttendant, Attendant,
@@ -325,7 +343,7 @@ function getInsertQuery() {
     Price, Discount, Taxes, Markup, Commission,
     Cost, Rav, Total, Information, Notes
   ) VALUES (?, ?, ?, ?,
-    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?,
     ?, ?, ?, ?, ?, ?,
