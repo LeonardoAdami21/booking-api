@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import * as dotenv from "dotenv";
+import { loadErrorMessages } from "../index.js";
 dotenv.config();
 
 const dbConfig = {
@@ -16,11 +17,17 @@ export const pool = mysql.createPool(dbConfig);
 export async function testConnection() {
   try {
     const connection = await pool.getConnection();
-    console.log("✅ Conexão com MySQL estabelecida com sucesso!");
-    connection.release();
-    return true;
+    const messages = await loadErrorMessages("pt-BR");
+    return reply.status(200).send({
+      error: "S120",
+      message: messages["S120"],
+      connection
+    });
   } catch (error) {
-    console.error("❌ Erro ao conectar com MySQL:", error.message);
-    return false;
+    const messages = await loadErrorMessages("pt-BR");
+    return reply.status(500).send({
+      error: "E119",
+      message: messages["E119"],
+    });
   }
 }
