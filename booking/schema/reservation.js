@@ -4,7 +4,7 @@ export const reservationSchema = {
   required: ["business", "reservation"],
   properties: {
     business: { type: "string", maxLength: 255 },
-    reservation: {
+    reservation:  {
       type: "object",
       required: ["type", "language", "currency", "period", "customer"],
       properties: {
@@ -138,15 +138,15 @@ export const reservationSchema = {
                   },
                 },
                 birthdate: { type: "string", format: "date" },
-                gender: { type: "string", enum: ["male", "female", "other"] },
+                gender: { type: "string", enum: ["male", "female"] },
                 ageGroup: {
                   type: "string",
-                  enum: ["adult", "child", "infant"],
+                  enum: ["adult", "child", "infant","senior"],
                 },
               },
             },
           },
-        },
+        }
       },
     },
   },

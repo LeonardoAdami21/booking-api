@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import formbody from "@fastify/formbody";
-import reservationRoutes from "./features/reservation.js";
+import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
 import { getErrorMessage } from "./utils/error.js";
 import fs from "fs/promises";
@@ -26,6 +26,7 @@ const API_HANDLERS = {
   reservation: reservationRoutes,
 };
 
+
 async function loadErrorMessages(lang) {
   const filePath = path.join(process.cwd(), "language", `${lang}.json`);
   try {
@@ -40,21 +41,24 @@ async function loadErrorMessages(lang) {
   }
 }
 
+// Hook para bloquear métodos diferentes de POST
+fastify.addHook("preHandler", async (request, reply) => {
+  if (request.method !== "POST") {
+    const lang = getLanguageFromRequest(request);
+    const messages = await loadErrorMessages(lang);
+    return reply.code(405).send({
+      error: "E001",
+      message: messages["E001"],
+    });
+  }
+});
+
 function getLanguageFromRequest(request) {
   const lang = request.headers["accept-language"];
   return ["pt-BR", "en-US"].includes(lang) ? lang : "pt-BR";
 }
 
 fastify.register(reservationRoutes, { prefix: "/v2" });
-
-fastify.get("/health", async (request, reply) => {
-  try {
-    await testConnection();
-    return reply.code(200).send({ status: "OK" });
-  } catch (error) {
-    return reply.code(500).send({ status: "DOWN" });
-  }
-});
 
 fastify.post("/v2/:type", async (request, reply) => {
   const lang = getLanguageFromRequest(request);
@@ -92,6 +96,12 @@ fastify.post("/v2/:type", async (request, reply) => {
 
     return reply.code(response.status).send(response.data);
   } catch (error) {
+    fastify.log.error("VM - Erro ao processar requisição:", error.message);
+
+    if (error.response) {
+      return reply.code(error.response.status).send(error.response.data);
+    }
+
     if (["ECONNABORTED", "ENOTFOUND"].includes(error.code)) {
       return reply.code(503).send({
         error: "E007",
