@@ -1,0 +1,24 @@
+{
+  "E100": "Método não permitido. Apenas POST é aceito.",
+  "E101": "Parâmetros inválidos. O campo 'type' é obrigatório.",
+  "E103": "Tipo inválido. Tipos aceitos: reservation, cancelation, search and modification.",
+  "E105": "Chave de API é obrigatória.",
+  "E106": "Chave de API inválida.",
+  "E107": "Erro interno do servidor.",
+  "E108": "Serviço indisponível.",
+  "E109": "Servidor está iniciando na porta",
+  "E110": "Data de início deve ser posterior ou igual ao dia atual",
+  "E111": "Data de fim deve ser posterior ou igual ao dia atual",
+  "E112": "Período da reserva é obrigatório",
+  "E113": "Nenhuma data dentre os períodos foi encontrada",
+  "E114": "Reserva inválida",
+  "E115": "Reserva com esse identificador já existe",
+  "E116": "Reserva não encontrada",
+  "E117": "Erro ao buscar duplicatas",
+  "E118": "Erro ao resgatar reserva inserida",
+  "E119": "Erro de conexão com MySQL",
+  "E122": "Servidor com erro",
+
+  "S120": "Conexão com MySQL estabelecida com sucesso!",
+  "S121": "Reserva criada com sucesso!"
+}

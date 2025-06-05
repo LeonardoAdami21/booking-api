@@ -1,0 +1,23 @@
+{
+  "E100": "Method not allowed. Only POST is accepted.",
+  "E101": "Invalid parameters. The 'type' field is required.",
+  "E103": "Invalid type. Accepted types: reservation, cancelation, search, and modification.",
+  "E105": "API key is required.",
+  "E106": "Invalid API key.",
+  "E107": "Internal server error.",
+  "E108": "Service unavailable.",
+  "E109": "Server is starting on the port.",
+  "E110": "Start date must be today or later.",
+  "E111": "End date must be today or later.",
+  "E112": "Reservation period is required.",
+  "E113": "No dates found within the reservation periods.",
+  "E114": "Invalid reservation.",
+  "E115": "A reservation with this identifier already exists.",
+  "E116": "Reservation not found.",
+  "E117": "Error while checking for duplicates.",
+  "E118": "Failed to retrieve inserted reservation.",
+  "E119": "MySQL connection error.",
+
+  "S120": "Successfully connected to MySQL!",
+  "S121": "Reservation successfully created!"
+}
