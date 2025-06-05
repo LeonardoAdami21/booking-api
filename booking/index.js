@@ -1,10 +1,9 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import formbody from "@fastify/formbody";
-import reservationRoutes from "./features/reservation.js";
+import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
-import { getErrorMessage } from "./utils/error.js";
-import fs from "fs/promises";
+import { promises as fs } from "fs";
 import * as path from "path";
 
 const fastify = Fastify({
@@ -26,19 +25,33 @@ const API_HANDLERS = {
   reservation: reservationRoutes,
 };
 
-async function loadErrorMessages(lang) {
-  const filePath = path.join(process.cwd(), "language", `${lang}.json`);
+export async function loadErrorMessages(lang) {
+  const filePath = path.join(
+    process.cwd(),
+    "/booking/utils/error",
+    `${lang}.json`,
+  );
+
   try {
     const data = await fs.readFile(filePath, "utf8");
     return JSON.parse(data);
-  } catch {
-    const fallback = await fs.readFile(
-      path.join(process.cwd(), "language", "pt-BR.json"),
-      "utf8",
-    );
-    return JSON.parse(fallback);
+  } catch (err) {
+    console.error(`Erro ao carregar mensagens de erro para '${lang}':`, err);
+    return {};
   }
 }
+
+// Hook para bloquear métodos diferentes de POST
+fastify.addHook("preHandler", async (request, reply) => {
+  if (request.method !== "POST") {
+    const lang = getLanguageFromRequest(request);
+    const messages = await loadErrorMessages(lang);
+    return reply.code(405).send({
+      error: "E001",
+      message: messages["E001"],
+    });
+  }
+});
 
 function getLanguageFromRequest(request) {
   const lang = request.headers["accept-language"];
@@ -46,15 +59,6 @@ function getLanguageFromRequest(request) {
 }
 
 fastify.register(reservationRoutes, { prefix: "/v2" });
-
-fastify.get("/health", async (request, reply) => {
-  try {
-    await testConnection();
-    return reply.code(200).send({ status: "OK" });
-  } catch (error) {
-    return reply.code(500).send({ status: "DOWN" });
-  }
-});
 
 fastify.post("/v2/:type", async (request, reply) => {
   const lang = getLanguageFromRequest(request);
@@ -111,8 +115,10 @@ const start = async () => {
     await fastify.listen({ port: 3000, host: "0.0.0.0" });
     console.log(`Server running on port http://localhost:${3000}/v2`);
   } catch (err) {
-    fastify.log.error(err);
-    process.exit(1);
+    return reply.status(500).send({
+      error: "E122",
+      message: messages["E122"],
+    });
   }
 };
 
