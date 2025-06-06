@@ -17,8 +17,15 @@
   "E117": "Erro ao buscar duplicatas",
   "E118": "Erro ao resgatar reserva inserida",
   "E119": "Erro de conexão com MySQL",
-  "E122": "Servidor com erro",
+  "E122": "Erro ao criar um serviço",
+  "E123": "Período do serviço é obrigatório",
+  "E124": "Fornecedor do serviço é obrigatório",
+  "E125": "Informação dos passageiros é obrigatório",
+  "E126": "Reserva cancelada",
+  "E127": "Erro ao verificar duplicata de serviço ",
+  "E128": "Serviço com este identificador já existe para esta reserva",
 
   "S120": "Conexão com MySQL estabelecida com sucesso!",
-  "S121": "Reserva criada com sucesso!"
+  "S121": "Reserva criada com sucesso!",
+  "S122": "Serviço criado com sucesso!"
 }
