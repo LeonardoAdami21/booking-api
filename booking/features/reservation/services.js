@@ -8,13 +8,8 @@ export async function validateReservationExists(connection, idmo, business) {
     const [result] = await connection.query(
       `SELECT 
         IDMO, Business, Identifier, Hash, Status,
-        IDClient, Client,
-        IDAgent, Agent,
-        IDManager, Manager,
         IDAttendant, Attendant,
-        IDUser, User,
-        IDCustomer, Customer,
-        IDCompany, Company, Channel
+        IDUser, User
        FROM \`ORDER\` 
        WHERE IDMO = ? AND Business = ? 
        LIMIT 1`,
@@ -126,36 +121,29 @@ export function validateRoomService(room) {
 
 // Função para preparar os dados simples do serviço
 export async function prepareSimpleServiceData(idmo, room, reservation) {
-
   const serviceData = {
     Created: new Date(),
     Updated: new Date(),
     Expiration: new Date(room.expiresAt),
-    Confirmation: new Date(room.confirmation),
+    Confirmation: new Date(room.confirmation).toISOString().split("T")[0],
     Code: parseIntegerField(room.board.code) || 0,
     IdMO: idmo,
+    IDOrder: reservation.Identifier,
     Identifier: room.identifier || "",
-    Status: parseIntegerField(room.status),
-    IDAgente: reservation.IDAgent || 0,
-    Agente: reservation.Agent || "",
-    IDAttendant: reservation.IDAttendant || 0,
-    Attendant: reservation.Attendant || "",
-    IDCompany: reservation.IDCompany || 0,
-    Company: reservation.Company || "",
-    IDClient: reservation.IDClient || 0,
-    Client: reservation.Client || "",
-    IDManager: reservation.IDManager || 0,
-    Manager: reservation.Manager || "",
-    IDUser: reservation.IDUser || 0,
-    User: reservation.User || "",
-    IDCustomer: reservation.IDCustomer || 0,
-    Customer: reservation.Customer || "",
-    Locators: JSON.stringify(room.connector || {}),
     Type: room.type || "room",
+    Status: parseIntegerField(room.status),
     Description: JSON.stringify(
       room?.room?.category?.value + " com " + room?.room?.capacity.value || {},
     ),
-    Channel: reservation.Channel || "unknown",
+    IDAttendant: reservation.IDAttendant || 0,
+    Attendant: reservation.Attendant || "",
+    Supplier: JSON.stringify(room.supplier.name || {}),
+    IDSupplier: room.supplier.id || 0,
+    User: JSON.stringify(reservation.User || {}),
+    IDUser: reservation.IDUser || 0,
+    Locator: JSON.stringify(room.connector.code || {}),
+    StartLocation: JSON.stringify(room.destination.name || {}),
+    EndLocation: JSON.stringify(room.destination.name || {}),
     StartDate: new Date(room.period.start).toISOString().split("T")[0],
     EndDate: new Date(room.period.end).toISOString().split("T")[0],
     People: JSON.stringify(room.pax || {}),
@@ -164,23 +152,30 @@ export async function prepareSimpleServiceData(idmo, room, reservation) {
     Adult: room.pax?.adult || 2,
     Senior: room.pax?.senior || 0,
     Information: room.information || "",
-    Included: JSON.stringify(room.package.description || {}),
-    Destination: JSON.stringify(room?.destination || {}),
-    Policy: JSON.stringify(room.policies || {}),
+    Room: JSON.stringify(
+      room.room.capacity.code +
+        " - " +
+        room.room.category.code +
+        "- " +
+        room.board.code || {},
+    ).split(" "),
+    BreakType: JSON.stringify(room.break?.type || {}),
+    BreakPrice: JSON.stringify(room.break?.price || 0),
     Price: parseFloat(room.price || 0),
-    Taxes: parseFloat(room?.pricing?.taxes?.total || 0),
-    Markup: parseFloat(room?.pricing?.markup?.total || 0),
-    Commission: parseFloat(room?.pricing?.commission?.total || 0),
+    Taxes: JSON.stringify(room?.pricing.taxes.total || 0),
+    MarkupInfo: JSON.stringify(room.pricing?.markup?.total || 0),
+    CommissionInfo: parseFloat(room?.pricing?.commission?.total || 0),
     Discount: parseFloat(0),
     Rebate: parseFloat(0),
-    Cost: parseFloat(room.price || 0),
-    Daily: parseFloat(room.price || 0),
-    Bonification: parseFloat(room.bonification || 0),
+    Cost: JSON.stringify(room.price || 0),
+    Bonification: JSON.stringify(room.bonification || 0),
+    Extra: JSON.stringify(room.extra || 0),
     Total: parseFloat(room.total || room.price || 0),
+    PriceSource: JSON.stringify(room.price_source || 0),
     Currency: room.currency || "BRL",
-    CurrencySale: room.currency || "BRL",
-    Exchange: parseFloat(room.exchange?.buy || 1),
-    ExchangeSale: parseFloat(room.exchange?.operation || 1),
+    Exchange: JSON.stringify(
+      room.exchange.from + " - " + room.exchange.to || 0,
+    ),
   };
 
   return serviceData;
@@ -331,7 +326,7 @@ export async function createRoomService(connection, business, idmo, room) {
       message: messages["S121"],
     };
   } catch (error) {
-    console.error("Erro em createRoomService:", error);
+    console.error(error);
     return {
       success: false,
       error: "E122",
