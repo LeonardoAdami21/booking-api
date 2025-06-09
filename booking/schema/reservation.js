@@ -151,6 +151,7 @@ export const reservationSchema = {
     },
     room: {
       type: "array",
+      
       items: {
         type: "object",
         required: [
@@ -162,7 +163,6 @@ export const reservationSchema = {
           "expiresAt",
           "confirmation",
           "title",
-
           "supplier",
           "connector", // [{"type":"connector","locador":"123912919","name":"hotelbeds"},{"type":"connector","locador":"123912919","name":"hotelbeds"}]
           "distributor", // inserir estes dois no Locators
