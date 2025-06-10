@@ -8,37 +8,46 @@ import {
   prepareReservationData,
   validateReservation,
 } from "./helper.js";
-import { createRoomService } from "./services.js";
+import {
+  createFlightService,
+  createInsuranceService,
+  createMeetingService,
+  createNoteService,
+  createRentalService,
+  createRoomService,
+  createTicketService,
+  createTourService,
+  createTransferService,
+} from "./services.js";
 
 // Função para criar e gerenciar reservas
 export default async function reservationRoutes(fastify, options) {
   // POST - Criar nova reserva
   fastify.post(
     "/reservation",
-    {
-      schema: {
-        body: reservationSchema,
-        response: {
-          201: {
-            type: "object",
-            properties: {
-              id: { type: "integer" },
-              type: { type: "string" },
-              business: { type: "string" },
-              hash: { type: "string" },
-              version: { type: "integer" },
-              reservation: { type: "object" },
-              error: { type: "string" },
-              message: { type: "string" },
-            },
-          },
-        },
-      },
-    },
+    // {
+    //   schema: {
+    //     body: reservationSchema,
+    //     response: {
+    //       201: {
+    //         type: "object",
+    //         properties: {
+    //           id: { type: "integer" },
+    //           type: { type: "string" },
+    //           business: { type: "string" },
+    //           hash: { type: "string" },
+    //           version: { type: "integer" },
+    //           reservation: { type: "object" },
+    //           error: { type: "string" },
+    //           message: { type: "string" },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
     async (request, reply) => {
       const connection = await fastify.mysql.getConnection();
       const messages = await loadErrorMessages("pt-BR");
-
       try {
         await connection.beginTransaction();
 
@@ -46,8 +55,8 @@ export default async function reservationRoutes(fastify, options) {
           business,
           reservation,
           room = [],
-          tour = [],
           transfer = [],
+          tour = [],
           ticket = [],
           insurance = [],
           flight = [],
@@ -55,7 +64,15 @@ export default async function reservationRoutes(fastify, options) {
           note = [],
           meeting = [],
         } = request.body;
-        const roomServices = room.length > 0 ? room : [];
+        let roomServices = room.length > 0 ? room : [];
+        let transferServices = transfer.length > 0 ? transfer : [];
+        let tourServices = tour.length > 0 ? tour : [];
+        let ticketServices = ticket.length > 0 ? ticket : [];
+        let insuranceServices = insurance.length > 0 ? insurance : [];
+        let flightServices = flight.length > 0 ? flight : [];
+        let rentalServices = rental.length > 0 ? rental : [];
+        let noteServices = note.length > 0 ? note : [];
+        let meetingServices = meeting.length > 0 ? meeting : [];
 
         // Valida a reserva antes de qualquer operação
         const validateError = validateReservation(reservation);
@@ -146,41 +163,64 @@ export default async function reservationRoutes(fastify, options) {
         const createdServices = [];
         const failedServices = [];
 
-        if (
-          roomServices &&
-          Array.isArray(roomServices) &&
-          roomServices.length > 0
-        ) {
-          for (const roomService of roomServices) {
+        const serviceHandlers = {
+          room: createRoomService,
+          transfer: createTransferService,
+          tour: createTourService,
+          ticket: createTicketService,
+          insurance: createInsuranceService,
+          flight: createFlightService,
+          rental: createRentalService,
+          note: createNoteService,
+          meeting: createMeetingService,
+        };
+
+        const allServices = {
+          room: roomServices,
+          transfer: transferServices,
+          tour: tourServices,
+          ticket: ticketServices,
+          insurance: insuranceServices,
+          flight: flightServices,
+          rental: rentalServices,
+          note: noteServices,
+          meeting: meetingServices,
+        };
+
+        for (const [type, services] of Object.entries(allServices)) {
+          if (!Array.isArray(services) || services.length === 0) continue;
+          const handler = serviceHandlers[type];
+          if (!handler) continue;
+
+          for (const serviceItem of services) {
             try {
-              const serviceResult = await createRoomService(
+              const result = await handler(
                 connection,
                 business,
                 insertedReservation.IDMO,
-                roomService,
+                serviceItem,
               );
-
-              if (serviceResult.success) {
+              if (result.success) {
                 createdServices.push({
-                  id: serviceResult.id,
-                  identifier: roomService.identifier,
-                  service: serviceResult.service,
+                  id: result.id,
+                  identifier: serviceItem.identifier,
+                  service: result.service,
                   status: "S122",
                   message: messages["S122"],
                 });
               } else {
                 failedServices.push({
-                  identifier: roomService.identifier,
+                  identifier: serviceItem.identifier,
                   error: "E107",
                   message: messages["E107"],
                 });
               }
-            } catch (error) {
+            } catch (err) {
               await connection.rollback();
               return {
                 id: null,
                 type: "reservation",
-                business: business,
+                business,
                 hash: null,
                 version: null,
                 reservation: null,
@@ -191,6 +231,7 @@ export default async function reservationRoutes(fastify, options) {
           }
         }
 
+        // Finaliza a transação
         await connection.commit();
 
         return {
