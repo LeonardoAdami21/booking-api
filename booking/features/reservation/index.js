@@ -7,44 +7,72 @@ import {
   getInsertQuery,
   prepareReservationData,
   validateReservation,
-} from "./reservation.js";
-import { createRoomService } from "./room.js";
+} from "./helper.js";
+import {
+  createFlightService,
+  createInsuranceService,
+  createMeetingService,
+  createNoteService,
+  createRentalService,
+  createRoomService,
+  createTicketService,
+  createTourService,
+  createTransferService,
+} from "./services.js";
 
-
-// Função para criar nova reservas
+// Função para criar e gerenciar reservas
 export default async function reservationRoutes(fastify, options) {
+  // POST - Criar nova reserva
   fastify.post(
     "/reservation",
-    {
-      schema: {
-        body: reservationSchema,
-        response: {
-          201: {
-            type: "object",
-            properties: {
-              id: { type: "integer" },
-              type: { type: "string" },
-              business: { type: "string" },
-              hash: { type: "string" },
-              version: { type: "integer" },
-              reservation: { type: "object" },
-              error: { type: "string" },
-              message: { type: "string" },
-            },
-          },
-        },
-      },
-    },
+    // {
+    //   schema: {
+    //     body: reservationSchema,
+    //     response: {
+    //       201: {
+    //         type: "object",
+    //         properties: {
+    //           id: { type: "integer" },
+    //           type: { type: "string" },
+    //           business: { type: "string" },
+    //           hash: { type: "string" },
+    //           version: { type: "integer" },
+    //           reservation: { type: "object" },
+    //           error: { type: "string" },
+    //           message: { type: "string" },
+    //         },
+    //       },
+    //     },
+    //   },
+    // },
     async (request, reply) => {
-      // Conecta ao banco de dados
       const connection = await fastify.mysql.getConnection();
       const messages = await loadErrorMessages("pt-BR");
       try {
-        // Inicia a transação
         await connection.beginTransaction();
 
-        let { business, reservation, room = [] } = request.body;
-        const roomServices = room.length > 0 ? room : [];
+        let {
+          business,
+          reservation,
+          room = [],
+          transfer = [],
+          tour = [],
+          ticket = [],
+          insurance = [],
+          flight = [],
+          rental = [],
+          note = [],
+          meeting = [],
+        } = request.body;
+        let roomServices = room.length > 0 ? room : [];
+        let transferServices = transfer.length > 0 ? transfer : [];
+        let tourServices = tour.length > 0 ? tour : [];
+        let ticketServices = ticket.length > 0 ? ticket : [];
+        let insuranceServices = insurance.length > 0 ? insurance : [];
+        let flightServices = flight.length > 0 ? flight : [];
+        let rentalServices = rental.length > 0 ? rental : [];
+        let noteServices = note.length > 0 ? note : [];
+        let meetingServices = meeting.length > 0 ? meeting : [];
 
         // Valida a reserva antes de qualquer operação
         const validateError = validateReservation(reservation);
@@ -63,20 +91,21 @@ export default async function reservationRoutes(fastify, options) {
           };
         }
 
-        // Verifica se já existe uma reserva com o mesmo identifier
+        // Verifica duplicidade
         const duplicateCheck = await checkDuplicateReservation(
           connection,
           reservation.identifier,
           business,
         );
+
         if (duplicateCheck) {
           await connection.rollback();
           return {
-            id: duplicateCheck.IDMO, // Retorna o ID da reserva existente
+            id: duplicateCheck.id,
             type: "reservation",
             business: business,
-            hash: duplicateCheck.Hash || null, // Retorna o hash existente
-            version: duplicateCheck.Version || null, // Retorna a versão existente
+            hash: duplicateCheck.hash,
+            version: duplicateCheck.version,
             reservation: null,
             error: "E115",
             services: [],
@@ -85,22 +114,18 @@ export default async function reservationRoutes(fastify, options) {
         }
 
         const hash = generateHash();
-
-        // Prepara os dados da reserva
         const reservationData = prepareReservationData(
           business,
           reservation,
           hash,
         );
 
-        // Insere a reserva (apenas uma vez)
-        const [result] = await connection.query(
-          getInsertQuery(),
-          reservationData,
-        );
+        // Usa a função dinâmica para inserir
+        const { query, values } = getInsertQuery(reservationData);
+        const [result] = await connection.query(query, values);
 
-        // Verifica se a inserção foi bem-sucedida
         if (!result.insertId) {
+          await connection.rollback();
           return {
             id: null,
             type: "reservation",
@@ -114,7 +139,6 @@ export default async function reservationRoutes(fastify, options) {
           };
         }
 
-        // Resgata os dados completos da reserva inserida
         const insertedReservation = await getInsertedReservation(
           connection,
           result.insertId,
@@ -135,45 +159,68 @@ export default async function reservationRoutes(fastify, options) {
           };
         }
 
-        // Array para armazenar os serviços criados
+        // Processa serviços de quarto
         const createdServices = [];
         const failedServices = [];
 
-        // Cria os serviços
-        if (
-          roomServices &&
-          Array.isArray(roomServices) &&
-          roomServices.length > 0
-        ) {
-          for (const roomService of roomServices) {
+        const serviceHandlers = {
+          room: createRoomService,
+          transfer: createTransferService,
+          tour: createTourService,
+          ticket: createTicketService,
+          insurance: createInsuranceService,
+          flight: createFlightService,
+          rental: createRentalService,
+          note: createNoteService,
+          meeting: createMeetingService,
+        };
+
+        const allServices = {
+          room: roomServices,
+          transfer: transferServices,
+          tour: tourServices,
+          ticket: ticketServices,
+          insurance: insuranceServices,
+          flight: flightServices,
+          rental: rentalServices,
+          note: noteServices,
+          meeting: meetingServices,
+        };
+
+        for (const [type, services] of Object.entries(allServices)) {
+          if (!Array.isArray(services) || services.length === 0) continue;
+          const handler = serviceHandlers[type];
+          if (!handler) continue;
+
+          for (const serviceItem of services) {
             try {
-              const serviceResult = await createRoomService(
+              const result = await handler(
                 connection,
                 business,
                 insertedReservation.IDMO,
-                roomService,
+                serviceItem,
               );
-              if (serviceResult.success) {
+              if (result.success) {
                 createdServices.push({
-                  id: serviceResult.id,
-                  identifier: roomService.identifier,
-                  service: serviceResult.service,
+                  id: result.id,
+                  identifier: serviceItem.identifier,
+                  service: result.service,
                   status: "S122",
                   message: messages["S122"],
                 });
               } else {
                 failedServices.push({
-                  identifier: roomService.identifier,
+                  identifier: serviceItem.identifier,
                   error: "E107",
                   message: messages["E107"],
                 });
               }
-            } catch (error) {
+            } catch (err) {
               await connection.rollback();
               return {
                 id: null,
                 type: "reservation",
-                business: business,
+                business,
                 hash: null,
                 version: null,
                 reservation: null,
@@ -184,37 +231,22 @@ export default async function reservationRoutes(fastify, options) {
           }
         }
 
+        // Finaliza a transação
         await connection.commit();
 
-        if (failedServices.length > 0) {
-          return {
-            id: insertedReservation.IDMO,
-            type: "reservation",
-            business: business,
-            hash: hash,
-            version: 1,
-            reservation,
-            status: "S121",
-            message: messages["S121"],
-            services: createdServices,
-          };
-        }
-
-        // Prepara o objeto de resposta final
         return {
-          id: insertedReservation.IDMO, // USA O IDMO DA TABELA, NÃO O result.insertId
+          id: insertedReservation.IDMO,
           type: "reservation",
           business: business,
           hash: hash,
           version: 1,
           reservation,
-          status: "S121",
+          status: failedServices.length > 0 ? "S121" : "S121",
           message: messages["S121"],
           services: createdServices,
         };
       } catch (error) {
         await connection.rollback();
-
         return {
           id: null,
           type: "reservation",

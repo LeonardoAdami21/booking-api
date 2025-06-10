@@ -41,17 +41,6 @@ export async function loadErrorMessages(lang) {
   }
 }
 
-// Hook para bloquear métodos diferentes de POST
-fastify.addHook("preHandler", async (request, reply) => {
-  if (request.method !== "POST") {
-    const lang = getLanguageFromRequest(request);
-    const messages = await loadErrorMessages(lang);
-    return reply.code(405).send({
-      error: "E001",
-      message: messages["E001"],
-    });
-  }
-});
 
 function getLanguageFromRequest(request) {
   const lang = request.headers["accept-language"];
