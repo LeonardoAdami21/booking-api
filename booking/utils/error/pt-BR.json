@@ -27,5 +27,6 @@
 
   "S120": "Conexão com MySQL estabelecida com sucesso!",
   "S121": "Reserva criada com sucesso!",
-  "S122": "Serviço criado com sucesso!"
+  "S122": "Serviços criado com sucesso!",
+  "S123": "Serviços atualizados com sucesso!"
 }
