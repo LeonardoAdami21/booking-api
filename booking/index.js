@@ -5,7 +5,7 @@ import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
 import { promises as fs } from "fs";
 import * as path from "path";
-import modificationRoutes from "./features/modification/index.js";
+//import modificationRoutes from "./features/modification/index.js";
 
 const fastify = Fastify({
   logger: true,
@@ -48,7 +48,7 @@ function getLanguageFromRequest(request) {
 }
 
 fastify.register(reservationRoutes, { prefix: "/v2" });
-fastify.register(modificationRoutes, { prefix: "/v2" });
+//fastify.register(modificationRoutes, { prefix: "/v2" });
 
 fastify.post("/v2/:type", async (request, reply) => {
   const lang = getLanguageFromRequest(request);
