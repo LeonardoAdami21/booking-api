@@ -1,5 +1,5 @@
 import { loadErrorMessages } from "../../index.js";
-
+import { v4 as uuidv4 } from "uuid";
 const messages = await loadErrorMessages("pt-BR");
 
 // ============================================================================
@@ -165,7 +165,7 @@ export async function getInsertedService(connection, serviceId) {
 
     const [result] = await connection.query(
       `SELECT IDMOS, IDMO, Identifier, Status, Description, Price, Total, 
-              Currency, StartDate, EndDate, Information, People
+              Currency, StartDate, EndDate, Information, People, Source, Options
        FROM SERVICE 
        WHERE IDMOS = ? LIMIT 1`,
       [serviceId],
@@ -188,43 +188,39 @@ export async function getInsertedService(connection, serviceId) {
 
 function processPaxData(assignedPaxIds, paxJsonData) {
   if (!paxJsonData || !assignedPaxIds) {
-    return { paxData: [], paxInfo: {} };
+    return []; // Retorna um array vazio (formato consistente)
   }
 
   const assignedIds = Array.isArray(assignedPaxIds)
     ? assignedPaxIds
     : [assignedPaxIds];
-  const paxData = [];
-  const paxInfo = {};
+  const processedPaxList = [];
 
-  // Processar cada PAX atribuído do JSON externo
   assignedIds.forEach((paxId) => {
     const paxDetails = paxJsonData[paxId];
     if (paxDetails) {
-      const processedPax = {
+      // Remove o campo "assignment" e mantém apenas os dados básicos do PAX
+      const { assignment, ...paxWithoutAssignment } = paxDetails;
+      processedPaxList.push({
         id: paxId,
-        main: paxDetails.main || false,
-        firstName: paxDetails.firstName || "",
-        lastName: paxDetails.lastName || "",
-        phone: paxDetails.phone || "",
-        email: paxDetails.email || "",
-        country: paxDetails.country || "",
+        main: paxWithoutAssignment.main || false,
+        firstName: paxWithoutAssignment.firstName || "",
+        lastName: paxWithoutAssignment.lastName || "",
+        phone: paxWithoutAssignment.phone || "",
+        email: paxWithoutAssignment.email || "",
+        country: paxWithoutAssignment.country || "",
         document: {
-          type: paxDetails.document?.type || "",
-          number: paxDetails.document?.number || "",
+          type: paxWithoutAssignment.document?.type || "",
+          number: paxWithoutAssignment.document?.number || "",
         },
-        birthdate: paxDetails.birthdate || "",
-        gender: paxDetails.gender || "",
-        ageGroup: paxDetails.ageGroup || "",
-        assignment: paxDetails.assignment || {},
-      };
-
-      paxData.push(processedPax);
-      paxInfo[paxId] = processedPax;
+        birthdate: paxWithoutAssignment.birthdate || "",
+        gender: paxWithoutAssignment.gender || "",
+        ageGroup: paxWithoutAssignment.ageGroup || "",
+      });
     }
   });
 
-  return { paxData, paxInfo };
+  return processedPaxList; // Retorna diretamente o array
 }
 
 // ============================================================================
@@ -243,7 +239,9 @@ function prepareServiceData(
   );
 
   // Processar dados do PAX vindos do JSON externo
-  const { paxData } = processPaxData(serviceData.assigned, paxJsonData);
+
+  const assignedPaxIds = paxOriginal.pax.map((p) => p.id);
+  const { paxData } = processPaxData(assignedPaxIds, paxJsonData);
 
   // Descrição dinâmica baseada no tipo
   let description = serviceData.description || "Descrição não disponível";
@@ -269,10 +267,9 @@ function prepareServiceData(
     Updated: now,
     Expiration: createSafeDate(serviceData.expiresAt, expirationDate),
     Confirmation: formatSafeDate(serviceData.confirmation, now),
-    IdMO: idmo,
     IDOrder: reservation.IDMO,
-    Identifier: serviceData.identifier || "",
-    Status: parseNumber(serviceData.status, 0),
+    Identifier: reservation.identifier,
+    Status: serviceData.status,
     Type: serviceData.type || SERVICE_TYPES.ROOM,
     Code: parseNumber(serviceData.board?.code, 0),
     Description: description,
@@ -310,24 +307,9 @@ function prepareServiceData(
     PriceSource: parseNumber(serviceData.price_source, 0, true),
     Currency: serviceData.currency || "BRL",
     Exchange: JSON.stringify(serviceData.exchange || {}),
+    Source: serviceData.source || "",
+    Options: JSON.stringify(serviceData.options || []),
   };
-
-  // Ajustes específicos por tipo de serviço
-  if (serviceData.type === SERVICE_TYPES.NOTE) {
-    baseData.StartDate = serviceData.rememberAt
-      ? formatSafeDate(serviceData.rememberAt)
-      : baseData.StartDate;
-    baseData.EndDate = baseData.StartDate;
-    baseData.ExtraData = JSON.stringify(serviceData.extra_data || {});
-  }
-
-  if (serviceData.type === SERVICE_TYPES.MEETING) {
-    baseData.StartLocation =
-      serviceData.destination?.name || baseData.StartLocation;
-    baseData.EndLocation =
-      serviceData.destination?.name || baseData.EndLocation;
-    baseData.ExtraData = JSON.stringify(serviceData.extra_data || {});
-  }
 
   return baseData;
 }

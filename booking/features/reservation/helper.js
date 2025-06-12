@@ -59,7 +59,7 @@ function parseFloatField(value, defaultValue = 0) {
 export async function getInsertedReservation(connection, insertId) {
   try {
     const [result] = await connection.query(
-      "SELECT IDMO, Business, Identifier, Hash, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
+      "SELECT IDMO, Business, Hash, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
       [insertId],
     );
     return result.length > 0 ? result[0] : null;
@@ -161,9 +161,6 @@ export async function checkDuplicateReservation(
 // Função para validar reserva
 export async function validateReservation(reservation) {
   // Validação básica de campos obrigatórios
-  if (!reservation.identifier) {
-    throw new Error(messages["E115"] || "Identificador é obrigatório");
-  }
 
   // Validar período (se obrigatório)
   if (!reservation.period.start || !reservation.period.end) {
@@ -235,7 +232,7 @@ export function prepareReservationData(business, reservation, hash) {
       : null,
     Business: business,
     Version: reservation.version || 1,
-    Identifier: reservation.identifier,
+    Identifier: uuidv4(),
     Hash: hash,
     Language: reservation.language || "pt-br",
     Status: reservation.status || "pending",
@@ -254,14 +251,8 @@ export function prepareReservationData(business, reservation, hash) {
     Client: reservation.client?.name || "",
 
     // Agent data
-    IDAgente: reservation.agent?.id || null,
-    Agente: reservation.agent ? getFullName(reservation.agent) : "",
-
-    // Attendant data
-    IDAttendant: reservation.attendant?.id || null,
-    Attendant: reservation.attendant
-      ? getFullName(reservation.attendant)
-      : null,
+    IDAgent: reservation.agent?.id || null,
+    Agent: reservation.agent ? getFullName(reservation.agent) : "",
 
     // User data
     IDUser: reservation.user?.id || null,
