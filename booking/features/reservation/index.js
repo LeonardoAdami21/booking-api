@@ -1,7 +1,5 @@
-import { reservationSchema } from "../../schema/reservation.js";
 import { loadErrorMessages } from "../../index.js";
 import {
-  checkDuplicateReservation,
   generateHash,
   getInsertedReservation,
   getInsertQuery,
@@ -11,8 +9,6 @@ import {
 import {
   createFlightService,
   createInsuranceService,
-  createMeetingService,
-  createNoteService,
   createRentalService,
   createRoomService,
   createTicketService,
@@ -51,65 +47,31 @@ export default async function reservationRoutes(fastify, options) {
       try {
         await connection.beginTransaction();
 
-        let {
-          business,
-          reservation,
-          room = [],
-          transfer = [],
-          tour = [],
-          ticket = [],
-          insurance = [],
-          flight = [],
-          rental = [],
-          note = [],
-          meeting = [],
-        } = request.body;
-        let roomServices = room.length > 0 ? room : [];
-        let transferServices = transfer.length > 0 ? transfer : [];
-        let tourServices = tour.length > 0 ? tour : [];
-        let ticketServices = ticket.length > 0 ? ticket : [];
-        let insuranceServices = insurance.length > 0 ? insurance : [];
-        let flightServices = flight.length > 0 ? flight : [];
-        let rentalServices = rental.length > 0 ? rental : [];
-        let noteServices = note.length > 0 ? note : [];
-        let meetingServices = meeting.length > 0 ? meeting : [];
+        let { business, reservation } = request.body;
+        let roomServices = reservation.room.length > 0 ? reservation.room : [];
+        let transferServices =
+          reservation.transfer.length > 0 ? reservation.transfer : [];
+        let tourServices = reservation.tour.length > 0 ? reservation.tour : [];
+        let ticketServices =
+          reservation.ticket.length > 0 ? reservation.ticket.length : [];
+        let insuranceServices =
+          reservation.insurance.length > 0 ? reservation.insurance : [];
+        let flightServices =
+          reservation.flight.length > 0 ? reservation.flight : [];
+        let rentalServices =
+          reservation.rental.length > 0 ? reservation.rental : [];
 
         // Valida a reserva antes de qualquer operação
-        const validateError = validateReservation(reservation);
-        if (validateError) {
+
+        const validateReservationData = await validateReservation(reservation);
+        if (validateReservationData.error) {
           await connection.rollback();
           return {
-            id: null,
-            type: "reservation",
-            business: business || null,
-            hash: null,
-            version: null,
-            reservation: null,
-            services: [],
-            error: "E114",
-            message: messages["E114"],
-          };
-        }
-
-        // Verifica duplicidade
-        const duplicateCheck = await checkDuplicateReservation(
-          connection,
-          reservation.identifier,
-          business,
-        );
-
-        if (duplicateCheck) {
-          await connection.rollback();
-          return {
-            id: duplicateCheck.id,
             type: "reservation",
             business: business,
-            hash: duplicateCheck.hash,
-            version: duplicateCheck.version,
             reservation: null,
-            error: "E115",
-            services: [],
-            message: messages["E115"],
+            error: "E112",
+            message: messages["E112"],
           };
         }
 
@@ -127,11 +89,8 @@ export default async function reservationRoutes(fastify, options) {
         if (!result.insertId) {
           await connection.rollback();
           return {
-            id: null,
             type: "reservation",
             business: business,
-            hash: null,
-            version: null,
             reservation: null,
             error: "E116",
             services: [],
@@ -147,14 +106,10 @@ export default async function reservationRoutes(fastify, options) {
         if (!insertedReservation) {
           await connection.rollback();
           return {
-            id: null,
             type: "reservation",
             business: business,
-            hash: null,
-            version: null,
             reservation: null,
             error: "E116",
-            services: [],
             message: messages["E116"],
           };
         }
@@ -171,8 +126,6 @@ export default async function reservationRoutes(fastify, options) {
           insurance: createInsuranceService,
           flight: createFlightService,
           rental: createRentalService,
-          note: createNoteService,
-          meeting: createMeetingService,
         };
 
         const allServices = {
@@ -183,8 +136,6 @@ export default async function reservationRoutes(fastify, options) {
           insurance: insuranceServices,
           flight: flightServices,
           rental: rentalServices,
-          note: noteServices,
-          meeting: meetingServices,
         };
 
         for (const [type, services] of Object.entries(allServices)) {
@@ -199,10 +150,11 @@ export default async function reservationRoutes(fastify, options) {
                 business,
                 insertedReservation.IDMO,
                 serviceItem,
+                reservation.pax,
               );
-              if (result.success) {
+              if (result.status) {
                 createdServices.push({
-                  id: result.id,
+                  id: result.IDMO,
                   identifier: serviceItem.identifier,
                   service: result.service,
                   status: "S122",
@@ -218,11 +170,8 @@ export default async function reservationRoutes(fastify, options) {
             } catch (err) {
               await connection.rollback();
               return {
-                id: null,
                 type: "reservation",
                 business,
-                hash: null,
-                version: null,
                 reservation: null,
                 error: "E107",
                 message: messages["E107"],
@@ -230,7 +179,6 @@ export default async function reservationRoutes(fastify, options) {
             }
           }
         }
-
         // Finaliza a transação
         await connection.commit();
 
@@ -240,21 +188,18 @@ export default async function reservationRoutes(fastify, options) {
           business: business,
           hash: hash,
           version: 1,
-          reservation,
+          reservation: {
+            createdServices,
+            failedServices,
+          },
           status: failedServices.length > 0 ? "S121" : "S121",
           message: messages["S121"],
-          services: createdServices,
         };
       } catch (error) {
         await connection.rollback();
         return {
-          id: null,
           type: "reservation",
-          business: request.body?.business || null,
-          hash: null,
-          version: null,
           reservation: null,
-          services: [],
           error: "E107",
           message: messages["E107"],
         };
