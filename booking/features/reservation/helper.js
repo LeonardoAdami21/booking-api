@@ -25,47 +25,34 @@ export function getInsertQuery(serviceData) {
   return { query, values };
 }
 
-// Função para obter a query de atualização de uma reserva
-export function getUpdateQuery(serviceData, whereConditions = {}) {
-  const fields = [];
-  const values = [];
-  const whereFields = [];
-  const whereValues = [];
+function createSafeDate(dateValue, fallback = new Date()) {
+  if (!dateValue) return fallback;
 
-  // Monta os campos para UPDATE
-  for (const [key, value] of Object.entries(serviceData)) {
-    if (value !== null && value !== undefined) {
-      fields.push(`${key} = ?`);
-      values.push(value);
-    }
+  const date = new Date(dateValue);
+  return isNaN(date.getTime()) ? fallback : date;
+}
+
+function formatSafeDate(dateValue, fallback = new Date()) {
+  const date = createSafeDate(dateValue, fallback);
+  return date.toISOString().split("T")[0];
+}
+
+function parseIntegerField(value, defaultValue = 0) {
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
   }
 
-  // Monta as condições WHERE
-  for (const [key, value] of Object.entries(whereConditions)) {
-    if (value !== null && value !== undefined) {
-      whereFields.push(`${key} = ?`);
-      whereValues.push(value);
-    }
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? defaultValue : parsed;
+}
+
+function parseFloatField(value, defaultValue = 0) {
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
   }
 
-  if (fields.length === 0) {
-    throw new Error("Nenhum campo para atualizar foi fornecido");
-  }
-
-  if (whereFields.length === 0) {
-    throw new Error("Nenhuma condição WHERE foi fornecida");
-  }
-
-  const query = `
-    UPDATE \`ORDER\` 
-    SET ${fields.join(", ")}
-    WHERE ${whereFields.join(" AND ")}
-  `;
-
-  return {
-    query,
-    values: [...values, ...whereValues],
-  };
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? defaultValue : parsed;
 }
 
 // Função para obter a reserva inserida
@@ -172,49 +159,49 @@ export async function checkDuplicateReservation(
 }
 
 // Função para validar reserva
-export function validateReservation(reservation) {
+export async function validateReservation(reservation) {
   // Validação básica de campos obrigatórios
   if (!reservation.identifier) {
-    return {
-      error: "E112",
-      message: messages["E112"],
-    };
+    throw new Error(messages["E115"] || "Identificador é obrigatório");
   }
 
-  if (
-    !reservation.period ||
-    !reservation.period.start ||
-    !reservation.period.end
-  ) {
-    return {
-      error: "E113",
-      message: messages["E113"],
-    };
+  // Validar período (se obrigatório)
+  if (!reservation.period.start || !reservation.period.end) {
+    return messages["E123"] || "Período é obrigatório";
   }
 
-  const startDate = new Date(reservation.period.start);
-  const endDate = new Date(reservation.period.end);
-  const today = new Date();
+  // Validar datas se período for fornecido
+  if (reservation.period?.start && reservation.period?.end) {
+    const startDate = createSafeDate(reservation.period.start);
+    const endDate = createSafeDate(reservation.period.end);
 
-  // Remove horas para comparação apenas de datas
-  today.setHours(0, 0, 0, 0);
-  startDate.setHours(0, 0, 0, 0);
+    if (isNaN(startDate.getTime())) {
+      throw new Error("Data de início inválida");
+    }
 
-  if (startDate < today) {
-    return {
-      error: "E110",
-      message: messages["E110"],
-    };
+    if (isNaN(endDate.getTime())) {
+      throw new Error("Data de fim inválida");
+    }
+
+    if (endDate <= startDate) {
+      throw new Error(
+        messages["E110"] || "Data de fim deve ser posterior à data de início",
+      );
+    }
   }
 
-  if (endDate <= startDate) {
-    return {
-      error: "E111",
-      message: messages["E111"],
-    };
+  if(reservation.pax && typeof reservation.pax === "object") {
+    for (const paxId in reservation.pax) {
+      const pax = reservation.pax[paxId];
+      if (pax.main) {
+        if (!pax.firstName || !pax.lastName || !pax.document || !pax.birthdate || !pax.gender) {
+          return messages["E116"] || "Informações do passageiro principal é obrigatória";
+        }
+      }
+    }
   }
 
-  return null;
+  return { valid: true, pax: reservation.pax };
 }
 
 // Função para gerar um hash
@@ -230,10 +217,14 @@ export function getFullName(person) {
   return `${firstName} ${lastName}`.trim();
 }
 
+const DEFAULT_EXPIRATION_DAYS = 30;
+const DEFAULT_PAX_ADULT = 2;
 // Função para preparar os dados da reserva (simplificada)
 export function prepareReservationData(business, reservation, hash) {
-  const version = 1;
   const now = new Date();
+  const expirationDate = new Date(
+    Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
+  );
 
   const data = {
     Created: now,
@@ -243,16 +234,16 @@ export function prepareReservationData(business, reservation, hash) {
       ? new Date(reservation.confirmation)
       : null,
     Business: business,
-    Version: version,
+    Version: reservation.version || 1,
     Identifier: reservation.identifier,
     Hash: hash,
     Language: reservation.language || "pt-br",
     Status: reservation.status || "pending",
     Type: reservation.type || "standard",
-    StartDate: new Date(reservation.period.start),
-    EndDate: new Date(reservation.period.end),
+    StartDate: formatSafeDate(reservation.period?.start, now),
+    EndDate: formatSafeDate(reservation.period?.end, expirationDate),
     Channel: reservation.channel?.name || "unknown",
-    Locator: reservation.locator || null,
+    Locator: reservation?.conector?.code || null,
 
     // Company data
     IDCompany: reservation.company?.id || null,
@@ -296,92 +287,4 @@ export function prepareReservationData(business, reservation, hash) {
   };
 
   return data;
-}
-
-// Função para atualizar uma reserva existente
-export async function updateReservation(
-  connection,
-  reservationId,
-  updateData,
-  business,
-) {
-  try {
-    // Adiciona dados de controle
-    const dataToUpdate = {
-      ...updateData,
-      Updated: new Date(),
-    };
-
-    const whereConditions = {
-      IDMO: reservationId,
-      Business: business,
-    };
-
-    const { query, values } = getUpdateQuery(dataToUpdate, whereConditions);
-
-    const [result] = await connection.query(query, values);
-
-    if (result.affectedRows > 0) {
-      // Busca e retorna a reserva atualizada
-      return await getInsertedReservation(connection, reservationId);
-    }
-
-    return null;
-  } catch (error) {
-    throw new Error(`Erro ao atualizar reserva: ${error.message}`);
-  }
-}
-
-// Função para buscar reservas com filtros dinâmicos
-export async function searchReservations(
-  connection,
-  filters = {},
-  limit = 50,
-  offset = 0,
-) {
-  const whereFields = [];
-  const whereValues = [];
-
-  // Monta as condições WHERE dinamicamente
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== null && value !== undefined) {
-      if (Array.isArray(value)) {
-        // Para arrays, usa IN
-        const placeholders = value.map(() => "?").join(", ");
-        whereFields.push(`${key} IN (${placeholders})`);
-        whereValues.push(...value);
-      } else if (typeof value === "string" && value.includes("%")) {
-        // Para strings com %, usa LIKE
-        whereFields.push(`${key} LIKE ?`);
-        whereValues.push(value);
-      } else {
-        // Para valores exatos
-        whereFields.push(`${key} = ?`);
-        whereValues.push(value);
-      }
-    }
-  }
-
-  try {
-    let query = `
-      SELECT IDMO, Business, Identifier, Hash, Version, Created, Updated, 
-             Status, StartDate, EndDate, Client, Customer, Total
-      FROM \`ORDER\`
-    `;
-
-    if (whereFields.length > 0) {
-      query += ` WHERE ${whereFields.join(" AND ")}`;
-    }
-
-    query += ` ORDER BY Created DESC LIMIT ? OFFSET ?`;
-
-    const [results] = await connection.query(query, [
-      ...whereValues,
-      limit,
-      offset,
-    ]);
-    return results;
-  } catch (error) {
-    throw new Error(`Erro ao buscar reservas: ${error.message}`);
-  }
 }

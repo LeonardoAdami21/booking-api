@@ -5,6 +5,7 @@ import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
 import { promises as fs } from "fs";
 import * as path from "path";
+import modificationRoutes from "./features/modification/index.js";
 
 const fastify = Fastify({
   logger: true,
@@ -41,13 +42,13 @@ export async function loadErrorMessages(lang) {
   }
 }
 
-
 function getLanguageFromRequest(request) {
   const lang = request.headers["accept-language"];
   return ["pt-BR", "en-US"].includes(lang) ? lang : "pt-BR";
 }
 
 fastify.register(reservationRoutes, { prefix: "/v2" });
+fastify.register(modificationRoutes, { prefix: "/v2" });
 
 fastify.post("/v2/:type", async (request, reply) => {
   const lang = getLanguageFromRequest(request);
@@ -103,11 +104,8 @@ const start = async () => {
   try {
     await fastify.listen({ port: 3000, host: "0.0.0.0" });
     console.log(`Server running on port http://localhost:${3000}/v2`);
-  } catch (err) {
-    return reply.status(500).send({
-      error: "E122",
-      message: messages["E122"],
-    });
+  } catch (error) {
+    throw new Error(error);
   }
 };
 
