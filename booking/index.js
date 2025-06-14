@@ -5,6 +5,7 @@ import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
 import { promises as fs } from "fs";
 import * as path from "path";
+import GCSClient from "./features/google/index.js";
 //import modificationRoutes from "./features/modification/index.js";
 
 const fastify = Fastify({
@@ -19,6 +20,9 @@ fastify.decorate("mysql", pool);
 
 // Middleware para parsing JSON
 fastify.register(formbody);
+const gcs = new GCSClient();
+// Decorar Fastify com GCS
+fastify.decorate("gcs", gcs);
 
 const VALID_TYPES = ["reservation"];
 

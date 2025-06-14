@@ -61,3 +61,5 @@ profile*
 .env
 
 /mysql_data
+
+/credentials
