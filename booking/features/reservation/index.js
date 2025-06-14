@@ -1,6 +1,6 @@
 import { loadErrorMessages } from "../../index.js";
+import GCSClient from "../google/index.js";
 import {
-  generateHash,
   getInsertedReservation,
   getInsertQuery,
   prepareReservationData,
@@ -15,7 +15,7 @@ import {
   createTourService,
   createTransferService,
 } from "./services.js";
-
+const gcs = new GCSClient();
 // Função para criar e gerenciar reservas
 export default async function reservationRoutes(fastify, options) {
   // POST - Criar nova reserva
@@ -47,7 +47,7 @@ export default async function reservationRoutes(fastify, options) {
       try {
         await connection.beginTransaction();
 
-        let { business, reservation } = request.body;
+        let { business, version, reservation } = request.body;
         let roomServices = reservation.room.length > 0 ? reservation.room : [];
         let transferServices =
           reservation.transfer.length > 0 ? reservation.transfer : [];
@@ -75,11 +75,10 @@ export default async function reservationRoutes(fastify, options) {
           };
         }
 
-        const hash = generateHash();
         const reservationData = prepareReservationData(
           business,
+          version,
           reservation,
-          hash,
         );
 
         // Usa a função dinâmica para inserir
@@ -179,18 +178,31 @@ export default async function reservationRoutes(fastify, options) {
             }
           }
         }
+
+        const backupData = {
+          timestamp: new Date().toISOString(),
+          business,
+          reservation,
+          ip: request.ip,
+          userAgent: request.headers["user-agent"],
+        };
+
+        const backupFileName = `${version}`;
+        await gcs.saveJSON(
+          backupData,
+          backupFileName,
+          `order/${insertedReservation.IDMO}`,
+        );
+
         // Finaliza a transação
         await connection.commit();
 
         return {
-          id: insertedReservation.IDMO,
           type: "reservation",
-          business: business,
-          hash: hash,
+          backup: backupFileName,
           version: 1,
           reservation: {
             createdServices,
-            failedServices,
           },
           status: failedServices.length > 0 ? "S121" : "S121",
           message: messages["S121"],
