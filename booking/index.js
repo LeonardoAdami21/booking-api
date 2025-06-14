@@ -5,7 +5,8 @@ import reservationRoutes from "./features/reservation/index.js";
 import { pool, testConnection } from "./config/database.js";
 import { promises as fs } from "fs";
 import * as path from "path";
-import modificationRoutes from "./features/modification/index.js";
+import GCSClient from "./features/google/index.js";
+//import modificationRoutes from "./features/modification/index.js";
 
 const fastify = Fastify({
   logger: true,
@@ -19,6 +20,9 @@ fastify.decorate("mysql", pool);
 
 // Middleware para parsing JSON
 fastify.register(formbody);
+const gcs = new GCSClient();
+// Decorar Fastify com GCS
+fastify.decorate("gcs", gcs);
 
 const VALID_TYPES = ["reservation"];
 
@@ -48,7 +52,7 @@ function getLanguageFromRequest(request) {
 }
 
 fastify.register(reservationRoutes, { prefix: "/v2" });
-fastify.register(modificationRoutes, { prefix: "/v2" });
+//fastify.register(modificationRoutes, { prefix: "/v2" });
 
 fastify.post("/v2/:type", async (request, reply) => {
   const lang = getLanguageFromRequest(request);

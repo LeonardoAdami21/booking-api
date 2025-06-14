@@ -1,5 +1,5 @@
 import { loadErrorMessages } from "../../index.js";
-
+import { v4 as uuidv4 } from "uuid";
 const messages = await loadErrorMessages("pt-BR");
 
 // ============================================================================
@@ -64,6 +64,7 @@ function createResponse(success, data = {}, error = null) {
 
 function validateServiceData(serviceData, options = {}) {
   const {
+    requireIdentifier = true,
     requirePeriod = true,
     requireSupplier = false,
     requirePax = false,
@@ -116,7 +117,7 @@ function validateServiceData(serviceData, options = {}) {
 export async function validateReservationExists(connection, idmo, business) {
   try {
     const [result] = await connection.query(
-      `SELECT IDMO, Business, Identifier, Hash, Status, IDAttendant, Attendant, 
+      `SELECT IDMO, Business, Identifier, Status, IDAgent, Agent, 
               IDUser, User
        FROM \`ORDER\`
        WHERE IDMO = ? AND Business = ?
@@ -165,7 +166,7 @@ export async function getInsertedService(connection, serviceId) {
 
     const [result] = await connection.query(
       `SELECT IDMOS, IDMO, Identifier, Status, Description, Price, Total, 
-              Currency, StartDate, EndDate, Information, People
+              Currency,IDAttendant, Attendant, StartDate, EndDate, Information, People, Source, Options
        FROM SERVICE 
        WHERE IDMOS = ? LIMIT 1`,
       [serviceId],
@@ -186,64 +187,82 @@ export async function getInsertedService(connection, serviceId) {
 // PROCESSAMENTO DE PAX (DADOS VINDOS DO JSON EXTERNO)
 // ============================================================================
 
+// Função para processar dados de PAX
 function processPaxData(assignedPaxIds, paxJsonData) {
-  if (!paxJsonData || !assignedPaxIds) {
-    return { paxData: [], paxInfo: {} };
-  }
+  if (!paxJsonData || !assignedPaxIds) return [];
 
   const assignedIds = Array.isArray(assignedPaxIds)
     ? assignedPaxIds
     : [assignedPaxIds];
-  const paxData = [];
-  const paxInfo = {};
 
-  // Processar cada PAX atribuído do JSON externo
-  assignedIds.forEach((paxId) => {
-    const paxDetails = paxJsonData[paxId];
-    if (paxDetails) {
-      const processedPax = {
-        id: paxId,
-        main: paxDetails.main || false,
-        firstName: paxDetails.firstName || "",
-        lastName: paxDetails.lastName || "",
-        phone: paxDetails.phone || "",
-        email: paxDetails.email || "",
-        country: paxDetails.country || "",
+  return assignedIds
+    .map((paxId) => {
+      const paxDetails = paxJsonData[paxId];
+      if (!paxDetails) return null;
+
+      // Remove os campos desnecessários e mantém apenas a estrutura desejada
+      const { id, assignment, ...paxFormatted } = paxDetails;
+
+      return {
+        main: paxFormatted.main || false,
+        firstName: paxFormatted.firstName || "",
+        lastName: paxFormatted.lastName || "",
+        phone: paxFormatted.phone || "",
+        email: paxFormatted.email || "",
+        country: paxFormatted.country || "",
         document: {
-          type: paxDetails.document?.type || "",
-          number: paxDetails.document?.number || "",
+          type: paxFormatted.document?.type || "",
+          number: paxFormatted.document?.number || "",
         },
-        birthdate: paxDetails.birthdate || "",
-        gender: paxDetails.gender || "",
-        ageGroup: paxDetails.ageGroup || "",
-        assignment: paxDetails.assignment || {},
+        birthdate: paxFormatted.birthdate || "",
+        gender: paxFormatted.gender || "",
+        ageGroup: paxFormatted.ageGroup || "",
       };
-
-      paxData.push(processedPax);
-      paxInfo[paxId] = processedPax;
-    }
-  });
-
-  return { paxData, paxInfo };
+    })
+    .filter((pax) => pax !== null);
 }
 
 // ============================================================================
 // PREPARAÇÃO DE DADOS DO SERVIÇO
 // ============================================================================
 
-function prepareServiceData(
-  idmo,
-  serviceData,
-  reservation,
-  paxJsonData = null,
-) {
+const VALID_SOURCES = [
+  "manual",
+  "connector",
+  "import",
+  "database",
+  "api",
+  "migration",
+];
+
+const DEFAULT_SOURCE = "manual";
+
+function getValidSource(sourceValue) {
+  // Se não foi fornecido um source, usar o padrão
+  if (!sourceValue) {
+    return DEFAULT_SOURCE;
+  }
+
+  // Converter para string e fazer lowercase para comparação
+  const normalizedSource = String(sourceValue).toLowerCase().trim();
+
+  // Verificar se o source é válido
+  if (VALID_SOURCES.includes(normalizedSource)) {
+    return normalizedSource;
+  }
+
+  // Se não for válido, retornar o padrão
+  console.warn(
+    `Source inválido: ${sourceValue}. Usando padrão: ${DEFAULT_SOURCE}`,
+  );
+  return DEFAULT_SOURCE;
+}
+
+function prepareServiceData(serviceData, reservation, processedPax) {
   const now = new Date();
   const expirationDate = new Date(
     Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
   );
-
-  // Processar dados do PAX vindos do JSON externo
-  const { paxData } = processPaxData(serviceData.assigned, paxJsonData);
 
   // Descrição dinâmica baseada no tipo
   let description = serviceData.description || "Descrição não disponível";
@@ -269,25 +288,26 @@ function prepareServiceData(
     Updated: now,
     Expiration: createSafeDate(serviceData.expiresAt, expirationDate),
     Confirmation: formatSafeDate(serviceData.confirmation, now),
-    IdMO: idmo,
-    IDOrder: reservation.IDMO,
-    Identifier: serviceData.identifier || "",
-    Status: parseNumber(serviceData.status, 0),
+    Identifier: reservation.identifier,
+    Status: serviceData.status,
+    IDMO: reservation.IDMO,
+    Identifier: serviceData.identifier,
     Type: serviceData.type || SERVICE_TYPES.ROOM,
     Code: parseNumber(serviceData.board?.code, 0),
     Description: description,
-    IDAttendant: reservation.IDAttendant || 0,
-    Attendant: reservation.Attendant || "",
+    IDAttendant: serviceData.IDAttendant || 0,
+    Attendant: serviceData.Attendant || "",
     Supplier: serviceData.supplier?.name || "",
     IDSupplier: serviceData.supplier?.id || 0,
     User: reservation.User || "",
     IDUser: reservation.IDUser || 0,
     Locator: serviceData.connector?.code || "",
+    Source: getValidSource(serviceData.source),
     StartLocation: JSON.stringify(serviceData.destination || {}),
     EndLocation: JSON.stringify(serviceData.destination || {}),
     StartDate: formatSafeDate(serviceData.period?.start, now),
     EndDate: formatSafeDate(serviceData.period?.end, expirationDate),
-    People: JSON.stringify({ pax: paxData }),
+    People: JSON.stringify({ pax: processedPax }),
     Infant: serviceData.pax?.infant || 0,
     Child: serviceData.pax?.child || 0,
     Adult: serviceData.pax?.adult || DEFAULT_PAX_ADULT,
@@ -299,35 +319,23 @@ function prepareServiceData(
     Price: parseNumber(serviceData.price, 0, true),
     Taxes: parseNumber(serviceData.pricing?.taxes?.total, 0, true),
     MarkupInfo: JSON.stringify(serviceData.pricing?.markup || {}),
-    TaxesInfo: JSON.stringify(serviceData.pricing?.taxes || {}),
+    TaxesInfo: JSON.stringify(serviceData.pricing?.taxes || {}, null, 0),
     CommissionInfo: JSON.stringify(serviceData.pricing?.commission || {}),
+    Commission: parseNumber(
+      serviceData.pricing.taxes[0]?.commission?.value || 0,
+    ),
+
     Discount: parseNumber(serviceData.discount, 0, true),
     Rebate: parseNumber(serviceData.rebate, 0, true),
     Cost: parseNumber(serviceData.price, 0, true),
     Bonification: parseNumber(serviceData.bonification, 0, true),
     Extra: parseNumber(serviceData.extra, 0, true),
-    Total: parseNumber(serviceData.total || serviceData.price, 0, true),
-    PriceSource: parseNumber(serviceData.price_source, 0, true),
+    Total: parseNumber(serviceData.pricing.taxes[0]?.price?.total || 0),
+    Markup: parseNumber(serviceData.pricing.taxes[0]?.markup?.value || 0, true),
     Currency: serviceData.currency || "BRL",
     Exchange: JSON.stringify(serviceData.exchange || {}),
+    Options: JSON.stringify(serviceData.options || [], null),
   };
-
-  // Ajustes específicos por tipo de serviço
-  if (serviceData.type === SERVICE_TYPES.NOTE) {
-    baseData.StartDate = serviceData.rememberAt
-      ? formatSafeDate(serviceData.rememberAt)
-      : baseData.StartDate;
-    baseData.EndDate = baseData.StartDate;
-    baseData.ExtraData = JSON.stringify(serviceData.extra_data || {});
-  }
-
-  if (serviceData.type === SERVICE_TYPES.MEETING) {
-    baseData.StartLocation =
-      serviceData.destination?.name || baseData.StartLocation;
-    baseData.EndLocation =
-      serviceData.destination?.name || baseData.EndLocation;
-    baseData.ExtraData = JSON.stringify(serviceData.extra_data || {});
-  }
 
   return baseData;
 }
@@ -396,18 +404,13 @@ export async function createService(
 
     // Preparar dados (passando o JSON do PAX como parâmetro)
     const preparedData = prepareServiceData(
-      idmo,
       serviceData,
       reservationResult.reservation,
       paxJsonData,
     );
 
-    if (!preparedData.IdMO) {
-      return createResponse(
-        false,
-        {},
-        { code: "E132", message: "IDMO é obrigatório" },
-      );
+    if (!preparedData) {
+      return createResponse(false, {});
     }
 
     // Inserir serviço
@@ -425,12 +428,27 @@ export async function createService(
     }
 
     // Adicionar informações de PAX se disponíveis
-    const { paxInfo } = processPaxData(serviceData.assigned, paxJsonData);
+
+    let processedPax = [];
+    if (paxJsonData && serviceData.assignedPaxIds) {
+      processedPax = processPaxData(serviceData.assignedPaxIds, paxJsonData);
+    }
+
+    const responseData = {
+      service: serviceResult.service,
+      serviceId: result.insertId,
+      code: "S121",
+      message: messages["S121"] || "Operação realizada com sucesso",
+    };
+
+    if (processedPax.length > 0) {
+      responseData.paxData = processedPax;
+    }
 
     return createResponse(true, {
       service: serviceResult.service,
       serviceId: result.insertId,
-      paxData: Object.keys(paxInfo).length > 0 ? paxInfo : null,
+      paxData: processedPax,
       code: "S121",
       message: messages["S121"] || "Operação realizada com sucesso",
     });
