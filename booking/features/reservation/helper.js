@@ -59,7 +59,7 @@ function parseFloatField(value, defaultValue = 0) {
 export async function getInsertedReservation(connection, insertId) {
   try {
     const [result] = await connection.query(
-      "SELECT IDMO, Business, Hash, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
+      "SELECT IDMO, Business, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
       [insertId],
     );
     return result.length > 0 ? result[0] : null;
@@ -68,7 +68,6 @@ export async function getInsertedReservation(connection, insertId) {
       id: null,
       type: "reservation",
       business: null,
-      hash: null,
       version: null,
       reservation: null,
       error: "E118",
@@ -96,7 +95,7 @@ export async function findReservation(connection, searchCriteria) {
 
   try {
     const query = `
-      SELECT IDMO, Business, Identifier, Hash, Version, Created, Status
+      SELECT IDMO, Business, Identifier, Version, Created, Status
       FROM \`ORDER\` 
       WHERE ${whereFields.join(" AND ")} 
       LIMIT 1
@@ -109,7 +108,6 @@ export async function findReservation(connection, searchCriteria) {
       id: null,
       type: "reservation",
       business: null,
-      hash: null,
       version: null,
       reservation: null,
       error: "E118",
@@ -135,7 +133,6 @@ export async function checkDuplicateReservation(
         id: existing.IDMO,
         type: "reservation",
         business: business,
-        hash: existing.Hash,
         version: existing.Version,
         reservation: null,
         error: null,
@@ -149,7 +146,6 @@ export async function checkDuplicateReservation(
       id: null,
       type: "reservation",
       business: business,
-      hash: null,
       version: null,
       reservation: null,
       error: "E117",
@@ -162,48 +158,27 @@ export async function checkDuplicateReservation(
 export async function validateReservation(reservation) {
   // Validação básica de campos obrigatórios
 
-  // Validar período (se obrigatório)
-  if (!reservation.period.start || !reservation.period.end) {
-    return messages["E123"] || "Período é obrigatório";
-  }
-
-  // Validar datas se período for fornecido
-  if (reservation.period?.start && reservation.period?.end) {
-    const startDate = createSafeDate(reservation.period.start);
-    const endDate = createSafeDate(reservation.period.end);
-
-    if (isNaN(startDate.getTime())) {
-      throw new Error("Data de início inválida");
-    }
-
-    if (isNaN(endDate.getTime())) {
-      throw new Error("Data de fim inválida");
-    }
-
-    if (endDate <= startDate) {
-      throw new Error(
-        messages["E110"] || "Data de fim deve ser posterior à data de início",
-      );
-    }
-  }
-
-  if(reservation.pax && typeof reservation.pax === "object") {
+  if (reservation.pax && typeof reservation.pax === "object") {
     for (const paxId in reservation.pax) {
       const pax = reservation.pax[paxId];
       if (pax.main) {
-        if (!pax.firstName || !pax.lastName || !pax.document || !pax.birthdate || !pax.gender) {
-          return messages["E116"] || "Informações do passageiro principal é obrigatória";
+        if (
+          !pax.firstName ||
+          !pax.lastName ||
+          !pax.document ||
+          !pax.birthdate ||
+          !pax.gender
+        ) {
+          return (
+            messages["E116"] ||
+            "Informações do passageiro principal é obrigatória"
+          );
         }
       }
     }
   }
 
   return { valid: true, pax: reservation.pax };
-}
-
-// Função para gerar um hash
-export function generateHash() {
-  return uuidv4().replace(/-/g, "");
 }
 
 // Função para obter o nome completo
@@ -217,7 +192,7 @@ export function getFullName(person) {
 const DEFAULT_EXPIRATION_DAYS = 30;
 const DEFAULT_PAX_ADULT = 2;
 // Função para preparar os dados da reserva (simplificada)
-export function prepareReservationData(business, reservation, hash) {
+export function prepareReservationData(business, version, reservation) {
   const now = new Date();
   const expirationDate = new Date(
     Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
@@ -226,19 +201,13 @@ export function prepareReservationData(business, reservation, hash) {
   const data = {
     Created: now,
     Updated: now,
-    Expiration: reservation.expiresAt ? new Date(reservation.expiresAt) : null,
     Confirmation: reservation.confirmation
       ? new Date(reservation.confirmation)
       : null,
     Business: business,
-    Version: reservation.version || 1,
+    Version: version || 1,
     Identifier: uuidv4(),
-    Hash: hash,
-    Language: reservation.language || "pt-br",
     Status: reservation.status || "pending",
-    Type: reservation.type || "standard",
-    StartDate: formatSafeDate(reservation.period?.start, now),
-    EndDate: formatSafeDate(reservation.period?.end, expirationDate),
     Channel: reservation.channel?.name || "unknown",
     Locator: reservation?.conector?.code || null,
 
