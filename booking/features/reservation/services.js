@@ -166,7 +166,7 @@ export async function getInsertedService(connection, serviceId) {
 
     const [result] = await connection.query(
       `SELECT IDMOS, IDMO, Identifier, Status, Description, Price, Total, 
-              Currency,IDAttendant, Attendant, StartDate, EndDate, Information, People, Source, Options
+              Currency,IDAttendant, Attendant, StartDate, EndDate, Information, People, Source, Options, Schedule
        FROM SERVICE 
        WHERE IDMOS = ? LIMIT 1`,
       [serviceId],
@@ -258,7 +258,7 @@ function getValidSource(sourceValue) {
   return DEFAULT_SOURCE;
 }
 
-function prepareServiceData(serviceData, reservation, processedPax) {
+function prepareServiceData(serviceData, reservation, processedPax = {}) {
   const now = new Date();
   const expirationDate = new Date(
     Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
@@ -335,6 +335,7 @@ function prepareServiceData(serviceData, reservation, processedPax) {
     Currency: serviceData.currency || "BRL",
     Exchange: JSON.stringify(serviceData.exchange || {}),
     Options: JSON.stringify(serviceData.options || [], null),
+    Schedule: JSON.stringify(serviceData.schedule || []),
   };
 
   return baseData;
@@ -430,8 +431,8 @@ export async function createService(
     // Adicionar informações de PAX se disponíveis
 
     let processedPax = [];
-    if (paxJsonData && serviceData.assignedPaxIds) {
-      processedPax = processPaxData(serviceData.assignedPaxIds, paxJsonData);
+    if (paxJsonData && serviceData.assigned) {
+      processedPax = processPaxData(serviceData.assigned, paxJsonData);
     }
 
     const responseData = {

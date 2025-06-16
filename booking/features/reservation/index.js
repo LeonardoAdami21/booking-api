@@ -47,23 +47,35 @@ export default async function reservationRoutes(fastify, options) {
       try {
         await connection.beginTransaction();
 
-        let { business, version, reservation } = request.body;
-        let roomServices = reservation.room.length > 0 ? reservation.room : [];
-        let transferServices =
-          reservation.transfer.length > 0 ? reservation.transfer : [];
-        let tourServices = reservation.tour.length > 0 ? reservation.tour : [];
-        let ticketServices =
-          reservation.ticket.length > 0 ? reservation.ticket.length : [];
-        let insuranceServices =
-          reservation.insurance.length > 0 ? reservation.insurance : [];
-        let flightServices =
-          reservation.flight.length > 0 ? reservation.flight : [];
-        let rentalServices =
-          reservation.rental.length > 0 ? reservation.rental : [];
+        let { business, version, create } = request.body;
+        // let roomServices =
+        //   reservation.service.room.length > 0 ? reservation.service.room : [];
+        // let transferServices =
+        //   reservation.service.transfer.length > 0
+        //     ? reservation.service.transfer
+        //     : [];
+        // let tourServices =
+        //   reservation.service.tour.length > 0 ? reservation.service.tour : [];
+        // let ticketServices =
+        //   reservation.service.ticket.length > 0
+        //     ? reservation.service.ticket.length
+        //     : [];
+        // let insuranceServices =
+        //   reservation.service.insurance.length > 0
+        //     ? reservation.service.insurance
+        //     : [];
+        // let flightServices =
+        //   reservation.service.flight.length > 0
+        //     ? reservation.service.flight
+        //     : [];
+        // let rentalServices =
+        //   reservation.service.rental.length > 0
+        //     ? reservation.service.rental
+        //     : [];
 
         // Valida a reserva antes de qualquer operação
 
-        const validateReservationData = await validateReservation(reservation);
+        const validateReservationData = await validateReservation(create);
         if (validateReservationData.error) {
           await connection.rollback();
           return {
@@ -78,7 +90,7 @@ export default async function reservationRoutes(fastify, options) {
         const reservationData = prepareReservationData(
           business,
           version,
-          reservation,
+          create,
         );
 
         // Usa a função dinâmica para inserir
@@ -107,82 +119,82 @@ export default async function reservationRoutes(fastify, options) {
           return {
             type: "reservation",
             business: business,
-            reservation: null,
+            create: null,
             error: "E116",
             message: messages["E116"],
           };
         }
 
         // Processa serviços de quarto
-        const createdServices = [];
-        const failedServices = [];
+        // const createdServices = [];
+        // const failedServices = [];
 
-        const serviceHandlers = {
-          room: createRoomService,
-          transfer: createTransferService,
-          tour: createTourService,
-          ticket: createTicketService,
-          insurance: createInsuranceService,
-          flight: createFlightService,
-          rental: createRentalService,
-        };
+        // const serviceHandlers = {
+        //   room: createRoomService,
+        //   transfer: createTransferService,
+        //   tour: createTourService,
+        //   ticket: createTicketService,
+        //   insurance: createInsuranceService,
+        //   flight: createFlightService,
+        //   rental: createRentalService,
+        // };
 
-        const allServices = {
-          room: roomServices,
-          transfer: transferServices,
-          tour: tourServices,
-          ticket: ticketServices,
-          insurance: insuranceServices,
-          flight: flightServices,
-          rental: rentalServices,
-        };
+        // const allServices = {
+        //   room: roomServices,
+        //   transfer: transferServices,
+        //   tour: tourServices,
+        //   ticket: ticketServices,
+        //   insurance: insuranceServices,
+        //   flight: flightServices,
+        //   rental: rentalServices,
+        // };
 
-        for (const [type, services] of Object.entries(allServices)) {
-          if (!Array.isArray(services) || services.length === 0) continue;
-          const handler = serviceHandlers[type];
-          if (!handler) continue;
+        // for (const [type, services] of Object.entries(allServices)) {
+        //   if (!Array.isArray(services) || services.length === 0) continue;
+        //   const handler = serviceHandlers[type];
+        //   if (!handler) continue;
 
-          for (const serviceItem of services) {
-            try {
-              const result = await handler(
-                connection,
-                business,
-                insertedReservation.IDMO,
-                serviceItem,
-                reservation.pax,
-              );
-              if (result.status) {
-                createdServices.push({
-                  id: result.IDMO,
-                  identifier: serviceItem.identifier,
-                  service: result.service,
-                  status: "S122",
-                  message: messages["S122"],
-                });
-              } else {
-                failedServices.push({
-                  identifier: serviceItem.identifier,
-                  error: "E107",
-                  message: messages["E107"],
-                });
-              }
-            } catch (err) {
-              await connection.rollback();
-              return {
-                type: "reservation",
-                business,
-                reservation: null,
-                error: "E107",
-                message: messages["E107"],
-              };
-            }
-          }
-        }
+        //   for (const serviceItem of services) {
+        //     try {
+        //       const result = await handler(
+        //         connection,
+        //         business,
+        //         insertedReservation.IDMO,
+        //         serviceItem,
+        //         reservation.pax,
+        //       );
+        //       if (result.status) {
+        //         createdServices.push({
+        //           id: result.IDMO,
+        //           identifier: serviceItem.identifier,
+        //           service: result.service,
+        //           status: "S122",
+        //           message: messages["S122"],
+        //         });
+        //       } else {
+        //         failedServices.push({
+        //           identifier: serviceItem.identifier,
+        //           error: "E107",
+        //           message: messages["E107"],
+        //         });
+        //       }
+        //     } catch (err) {
+        //       await connection.rollback();
+        //       return {
+        //         type: "reservation",
+        //         business,
+        //         reservation: null,
+        //         error: "E107",
+        //         message: messages["E107"],
+        //       };
+        //     }
+        //   }
+        // }
 
         const backupData = {
           timestamp: new Date().toISOString(),
           business,
-          reservation,
+          create,
           ip: request.ip,
           userAgent: request.headers["user-agent"],
         };
@@ -191,7 +203,7 @@ export default async function reservationRoutes(fastify, options) {
         await gcs.saveJSON(
           backupData,
           backupFileName,
-          `order/${insertedReservation.IDMO}`,
+          `${business}/order/${insertedReservation.IDMO}`,
         );
 
         // Finaliza a transação
@@ -201,17 +213,14 @@ export default async function reservationRoutes(fastify, options) {
           type: "reservation",
           backup: backupFileName,
           version: 1,
-          reservation: {
-            createdServices,
-          },
-          status: failedServices.length > 0 ? "S121" : "S121",
+          create,
           message: messages["S121"],
         };
       } catch (error) {
         await connection.rollback();
         return {
           type: "reservation",
-          reservation: null,
+          create: null,
           error: "E107",
           message: messages["E107"],
         };
