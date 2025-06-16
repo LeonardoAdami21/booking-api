@@ -211,17 +211,9 @@ export function prepareReservationData(business, version, reservation) {
     Channel: reservation.channel?.name || "unknown",
     Locator: reservation?.conector?.code || null,
 
-    // Company data
-    IDCompany: reservation.company?.id || null,
-    Company: reservation.company?.name || "",
-
-    // Client data
-    IDClient: reservation.client?.id || null,
-    Client: reservation.client?.name || "",
-
-    // Agent data
-    IDAgent: reservation.agent?.id || null,
-    Agent: reservation.agent ? getFullName(reservation.agent) : "",
+    // Issuer data
+    IDIssuer: reservation.issuer?.id || null,
+    Issuer: reservation.issuer?.name || "",
 
     // User data
     IDUser: reservation.user?.id || null,
@@ -234,16 +226,16 @@ export function prepareReservationData(business, version, reservation) {
     // Financial
     Price: reservation.total?.service?.price || 0.0,
     Discount: reservation.total?.service?.discount || 0.0,
-    Taxes: reservation.total?.service?.tax || 0.0,
     Markup: reservation.total?.service?.markup || 0.0,
     Commission: reservation.total?.service?.commission || 0.0,
     Cost: reservation.total?.service?.price || 0.0,
-    Rav: reservation.total?.service?.price || 0.0,
     Total: reservation.total?.total || 0.0,
 
     // Extra info
     Information: reservation.information || "",
     Notes: reservation.notes || "",
+
+    Booking: reservation.channel.booking || null,
   };
 
   return data;
