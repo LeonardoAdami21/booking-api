@@ -6,10 +6,7 @@ import {
   prepareReservationData,
   validateReservation,
 } from "./helper.js";
-import {
-  createAllServicesFromBooking,
-  getServiceCount
-} from "./services.js";
+import { createAllServicesFromBooking, getServiceCount } from "./services.js";
 
 const gcs = new GCSClient();
 
@@ -30,7 +27,6 @@ export default async function reservationRoutes(fastify, options) {
       if (totalServices === 0) {
         await connection.rollback();
         return {
-          type: "create",
           channel,
           create: null,
           error: "E124",
@@ -43,7 +39,6 @@ export default async function reservationRoutes(fastify, options) {
       if (validateReservationData.error) {
         await connection.rollback();
         return {
-          type: "create",
           channel,
           create: null,
           error: "E112",
@@ -65,7 +60,6 @@ export default async function reservationRoutes(fastify, options) {
           channel,
           create: null,
           error: "E116",
-          services: [],
           message: messages["E116"],
         };
       }
@@ -92,32 +86,23 @@ export default async function reservationRoutes(fastify, options) {
         connection,
         channel,
         create,
-        insertedReservation,
-        validateReservationData.serviceType,
+        create.pax,
+        insertedReservation
       );
 
-      // Processar resultados
-      const createdServices = allServicesResult.createdServices.map(
-        (service) => ({
-          id: service.serviceId,
-          identifier: service.service.Identifier,
-          type: service.serviceType,
-          service: service.service,
-          paxData: service.paxData,
-          index: service.index,
-          originalIndex: service.originalIndex,
-          transfer: service.transfer,
-          status: "S122",
-          message: messages["S122"] || "Serviço criado com sucesso",
-        }),
-      );
+      // Verificar se allServicesResult tem a estrutura esperada
+      if (!allServicesResult.success) {
+        await connection.rollback();
+        return {
+          channel,
+          create: null,
+          error: "E107",
+          message: messages["E107"],
+        };
+      }
 
-      const failedServices = allServicesResult.errors.map((error) => ({
-        type: error.serviceType,
-        index: error.index,
-        error: error.error?.error || "E107",
-        message: error.error?.message || messages["E107"],
-      }));
+      const createdServices = allServicesResult.success;
+      const failedServices = allServicesResult.error;
 
       // Backup dos dados
       const backupData = {
@@ -125,12 +110,12 @@ export default async function reservationRoutes(fastify, options) {
         channel,
         create,
         ip: request.ip,
-        userAgent: request.headers["user-agent"],
         processedServices: {
           total: totalServices,
-          created: createdServices.length,
-          failed: failedServices.length,
+          created: createdServices,
+          failed: failedServices,
         },
+        userAgent: request.headers["user-agent"],
       };
 
       const version = 1; // Defina a versão apropriada
@@ -143,8 +128,9 @@ export default async function reservationRoutes(fastify, options) {
           `${channel}/order/${insertedReservation.IDMO}`,
         );
       } catch (backupError) {
+        console.error("Erro no backup:", backupError);
+        await connection.rollback();
         return {
-          type: "create",
           channel,
           create: null,
           error: "E117",
@@ -160,44 +146,28 @@ export default async function reservationRoutes(fastify, options) {
         type: "create",
         backup: backupFileName,
         channel,
-        version: 1,
         reservation: {
           id: insertedReservation.IDMO,
-          identifier: insertedReservation.Identifier,
-          status: insertedReservation.Status,
         },
         services: {
           total: totalServices,
           created: createdServices.length,
-          failed: failedServices.length,
           details: {
             created: createdServices,
-            failed: failedServices,
+            failed: [],
           },
         },
         create,
-        message: messages["S121"] || "Reserva criada com sucesso",
+        message: messages["S121"],
       };
-
-      if (failedServices.length > 0) {
-        return {
-          type: "create",
-          channel,
-          create: null,
-          error: "E107",
-          message: messages["E107"],
-        };
-      }
-
       return response;
     } catch (error) {
       await connection.rollback();
       return {
-        type: "create",
         channel: request.body?.channel,
         create: null,
         error: "E107",
-        message: messages["E107"] || "Erro interno do servidor",
+        message: messages["E107"],
       };
     } finally {
       connection.release();

@@ -1,4 +1,5 @@
 import { loadErrorMessages } from "../../index.js";
+import { createServiceFromBooking } from "./services.js";
 const messages = await loadErrorMessages("pt-BR");
 
 // Função para validar dados de stopover
@@ -74,7 +75,7 @@ function validateStopoverData(stopover, transferIndex, stopoverIndex) {
 function validateTransferWithStopovers(transferData) {
   if (
     !transferData?.service?.transfer ||
-    !Array.isArray(transferData.service.transfer)
+    !Array.isArray(transferData?.service?.transfer)
   ) {
     return {
       success: false,
@@ -118,20 +119,181 @@ function validateTransferWithStopovers(transferData) {
   };
 }
 
-// Função para preparar dados de um stopover para inserção na tabela TRANSFER
-function prepareStopoverForTransfer(stopover, serviceId, identifier) {
+export async function searchPaxInOrder(connection, idmo) {
+  const [result] = await connection.query(
+    `SELECT IDMO FROM \`ORDER\` WHERE IDMO = ? LIMIT 1`,
+    [idmo],
+  );
+  if (result.length > 0) {
+    return result;
+  } else {
+    return [];
+  }
+}
+
+// Função melhorada para processar dados de PAX com debug detalhado
+function processPaxData(assignedPaxIds, paxJsonData) {
+  // Validação inicial
+  if (!paxJsonData) {
+    return {
+      success: false,
+      message: "Nenhum dado de PAX fornecido",
+    };
+  }
+
+  if (!assignedPaxIds || assignedPaxIds.length === 0) {
+    return {
+      success: false,
+      message: "Nenhum ID de PAX atribuído",
+    };
+  }
+
+  // CORREÇÃO: Achatar array aninhado se necessário
+  let assignedIds = assignedPaxIds;
+
+  // Se o primeiro elemento é um array, achatar
+  if (Array.isArray(assignedIds[0])) {
+    assignedIds = assignedIds.flat();
+  }
+
+  // Converter para array se for string
+  if (!Array.isArray(assignedIds)) {
+    assignedIds = [assignedIds];
+  }
+
+  // Processar cada PAX
+  const processedPax = assignedIds
+    .map((paxId, index) => {
+      console.log(
+        `🔄 [DEBUG] Processando PAX ${index + 1}/${assignedIds.length}: ${paxId}`,
+      );
+
+      // CORREÇÃO: Buscar no campo 'pax' do paxJsonData
+      const paxDetails = paxJsonData[paxId];
+
+      if (!paxDetails) {
+        return {
+          success: false,
+          message: `PAX ${paxId} não encontrado no JSON de PAX`,
+        };
+      }
+      // Verificar campos obrigatórios
+      const hasFirstName = !!(
+        paxDetails.firstName && paxDetails.firstName.trim()
+      );
+      const hasLastName = !!(paxDetails.lastName && paxDetails.lastName.trim());
+
+      // Aceita PAX com pelo menos nome OU sobrenome
+      if (!hasFirstName && !hasLastName) {
+        return null;
+      }
+
+      // Formatar dados do PAX
+      const processedPaxData = {
+        id: paxId,
+        main: paxDetails.main || false,
+        firstName: paxDetails.firstName || "",
+        lastName: paxDetails.lastName || "",
+        phone: paxDetails.phone || "",
+        email: paxDetails.email || "",
+        country: paxDetails.country || "",
+        document: {
+          type: paxDetails.document?.type || "",
+          number: paxDetails.document?.number || "",
+        },
+        birthdate: paxDetails.birthdate || "",
+        gender: paxDetails.gender || "",
+        ageGroup: paxDetails.ageGroup || "",
+      };
+      return processedPaxData;
+    })
+    .filter((pax) => pax !== null);
+  return processedPax;
+}
+
+// Função para buscar assigned em múltiplos locais possíveis
+function getAssignedPaxIds(bookingJsonData, transferIndex = 0) {
+  let assignedIds = [];
+
+  // 1. Primeiro: verificar se há assigned no nível raiz do booking
+  if (bookingJsonData?.assigned && Array.isArray(bookingJsonData.assigned)) {
+    assignedIds = bookingJsonData.assigned;
+    return assignedIds;
+  }
+
+  // 2. Segundo: verificar no nível do service
+  if (
+    bookingJsonData?.service?.assigned &&
+    Array.isArray(bookingJsonData.service.assigned)
+  ) {
+    assignedIds = bookingJsonData.service.assigned;
+    return assignedIds;
+  }
+
+  // 3. CORREÇÃO PRINCIPAL: verificar no transfer específico
+  if (
+    bookingJsonData?.service?.transfer &&
+    Array.isArray(bookingJsonData.service.transfer)
+  ) {
+    const transfers = bookingJsonData.service.transfer;
+
+    if (
+      transfers[transferIndex] &&
+      transfers[transferIndex].assigned &&
+      Array.isArray(transfers[transferIndex].assigned)
+    ) {
+      assignedIds = transfers[transferIndex].assigned;
+      return assignedIds;
+    }
+  }
+
+  // 4. Buscar em qualquer transfer disponível se não encontrou no específico
+  if (
+    bookingJsonData?.service?.transfer &&
+    Array.isArray(bookingJsonData.service.transfer)
+  ) {
+    for (let i = 0; i < bookingJsonData.service.transfer.length; i++) {
+      const transfer = bookingJsonData.service.transfer[i];
+      if (transfer.assigned && Array.isArray(transfer.assigned)) {
+        assignedIds = transfer.assigned;
+        return assignedIds;
+      }
+    }
+  }
+  return [];
+}
+
+function getIncludedCodes(serviceItem) {
+  if (!serviceItem?.included || !Array.isArray(serviceItem.included)) {
+    return [];
+  }
+
+  return serviceItem.included.map((item) => item.code);
+}
+
+// FUNÇÃO CORRIGIDA - prepareStopoverForTransfer agora usa corretamente os dados de PAX
+function prepareStopoverForTransfer(
+  stopover,
+  transfer, // Agora recebe o transfer
+  serviceId,
+  identifier,
+  paxJsonData = {}, // Renomeado para ser mais claro
+) {
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const assignedPaxIds = transfer.assigned || [];
+
+  // Processar PAX usando os IDs do assigned
+  let paxList = [];
+  if (assignedPaxIds.length > 0 && paxJsonData) {
+    paxList = processPaxData(assignedPaxIds, paxJsonData);
+  }
   return {
-    IDMO: serviceId, // Será definido pela aplicação
+    IDMO: serviceId,
+    Created: now,
     IDPerimeter: parseInt(stopover.perimeter_id) || 0,
     Identifier: identifier,
-    Estimed: JSON.stringify({
-      departure: stopover.estimated?.departure || null,
-      arrival: stopover.estimated?.arrival || null,
-    }),
-    Driver: JSON.stringify({
-      name: stopover.driver?.name || "",
-      phone: stopover.driver?.phone || "",
-    }),
+    Driver: stopover.driver?.name || "",
+    IDDriver: parseInt(JSON.stringify(stopover.driver?.id) || null),
     Number: stopover.number || "",
     Origin: JSON.stringify({
       name: stopover.origin?.name || "",
@@ -145,6 +307,13 @@ function prepareStopoverForTransfer(stopover, serviceId, identifier) {
         lng: stopover.origin?.coordinates?.lng || null,
       },
     }),
+    Arrival: stopover.estimated?.arrival,
+    Departure: stopover.estimated?.departure,
+    People: JSON.stringify({
+      pax: paxList,
+    }),
+    Mode: stopover.mode || "private",
+    Included: JSON.stringify(getIncludedCodes(stopover.included) || []),
     Destination: JSON.stringify({
       name: stopover.destination?.name || "",
       city: stopover.destination?.city || "",
@@ -156,17 +325,14 @@ function prepareStopoverForTransfer(stopover, serviceId, identifier) {
         lng: stopover.destination?.coordinates?.lng || null,
       },
     }),
-    Vehicle: JSON.stringify({
-      name: stopover.vehicle?.name || "",
-      classification: stopover.vehicle?.classification || "",
-      capacity: stopover.vehicle?.capacity || 0,
-      plate: stopover.vehicle?.plate || "",
-    }),
+    Vehicle: stopover.vehicle?.name || "",
+    Plate: JSON.stringify(stopover.vehicle?.plate || ""),
+    Options: stopover.options || "",
   };
 }
 
 // Função para construir query de inserção para TRANSFER
-function buildTransferInsertQuery(transferData) {
+export async function buildTransferInsertQuery(transferData) {
   const fields = [];
   const values = [];
   const placeholders = [];
@@ -179,40 +345,53 @@ function buildTransferInsertQuery(transferData) {
     }
   }
 
+  if (fields.length === 0) {
+    return {
+      message: "Nenhum dado para inserir na tabela TRANSFER",
+      values: [],
+    };
+  }
+
   return {
     query: `INSERT INTO TRANSFER (${fields.join(", ")}) VALUES (${placeholders.join(", ")})`,
     values,
   };
 }
 
-// Função para inserir um único stopover na tabela TRANSFER
+// FUNÇÃO CORRIGIDA - insertStopoverTransfer agora passa os dados corretos
 export async function insertStopoverTransfer(
   connection,
   stopover,
+  transfer,
   serviceId,
   identifier,
+  paxJsonData = null, // Renomeado para clareza
 ) {
   try {
     const transferData = prepareStopoverForTransfer(
       stopover,
+      transfer,
       serviceId,
       identifier,
+      paxJsonData,
     );
-    const { query, values } = buildTransferInsertQuery(transferData);
+    const { query, values } = await buildTransferInsertQuery(transferData);
 
     const [result] = await connection.query(query, values);
 
-    if (!result.insertId) {
-      throw new Error("Erro ao inserir stopover na tabela TRANSFER");
+    if (!result) {
+      return {
+        success: false,
+        error: "Erro ao inserir stopover",
+      };
     }
 
     return {
       success: true,
-      transferId: result.insertId,
+      transferId: result,
       data: transferData,
     };
   } catch (error) {
-    console.error("Erro ao inserir stopover:", error);
     return {
       success: false,
       error: error.message,
@@ -220,22 +399,25 @@ export async function insertStopoverTransfer(
   }
 }
 
-// Função para inserir todos os stopovers de um transfer
+// FUNÇÃO CORRIGIDA - insertAllStopovers agora processa PAX corretamente
 export async function insertAllStopovers(
   connection,
   transferData,
   serviceId,
   identifier,
+  paxJsonData = null, // Agora recebe o paxJsonData completo
 ) {
-  const results = [];
-  const errors = [];
+  let results = [];
+  let successCount = 0;
+  let errorCount = 0;
 
   // Validar estrutura primeiro
   const validationErrors = validateTransferWithStopovers(transferData);
-  if (validationErrors.length > 0) {
+  if (!validationErrors.success) {
     return {
       success: false,
-      errors: validationErrors,
+      error: "E129",
+      message: "Estrutura de transfer inválida",
     };
   }
 
@@ -261,54 +443,63 @@ export async function insertAllStopovers(
         const result = await insertStopoverTransfer(
           connection,
           stopover,
+          transfer, // Passa o transfer completo
           serviceId,
           stopoverIdentifier,
+          paxJsonData, // Passa o paxJsonData
         );
 
         if (result.success) {
-          results.push({
-            transferIndex,
-            stopoverIndex,
-            transferId: result.transferId,
-            identifier: stopoverIdentifier,
-          });
+          results.push(result);
+          successCount++;
         } else {
-          errors.push({
-            transferIndex,
-            stopoverIndex,
-            error: result.error,
-          });
+          return {
+            success: false,
+            error: "E130",
+            message: "Erro ao inserir stopover",
+          };
         }
       } catch (error) {
-        errors.push({
-          transferIndex,
-          stopoverIndex,
-          error: error.message,
-        });
+        return {
+          success: false,
+          error: "E130",
+          message: "Erro interno no servidor",
+        };
       }
     }
   }
 
   return {
-    success: errors.length === 0,
+    success: successCount > 0,
+    message: `${successCount} stopovers inseridos com sucesso, ${errorCount} com erro`,
     results,
-    errors,
-    totalProcessed: results.length + errors.length,
-    successCount: results.length,
-    errorCount: errors.length,
+    successCount,
+    errorCount,
   };
 }
 
-// Função principal para criar serviço de transfer com stopovers
+// FUNÇÃO PRINCIPAL CORRIGIDA - createTransferServiceWithStopovers
 export async function createTransferServiceWithStopovers(
   connection,
   channel,
   serviceType,
-  serviceIndex,
+  serviceIndex = 0,
   bookingJsonData,
-  paxJsonData = null,
+  paxJsonData = {},
 ) {
   try {
+    const assignedPaxIds = getAssignedPaxIds(bookingJsonData, serviceIndex);
+    let finalPaxIds = assignedPaxIds;
+    if (!assignedPaxIds || assignedPaxIds.length === 0) {
+      finalPaxIds = bookingJsonData.assigned || [];
+    }
+
+    // Processar PAX se houver dados
+    let processedPaxData = [];
+    if (paxJsonData && finalPaxIds.length > 0) {
+      processedPaxData = processPaxData(finalPaxIds, paxJsonData);
+    }
+
     // Primeiro, criar o serviço principal usando a função existente
     const serviceResult = await createServiceFromBooking(
       connection,
@@ -334,29 +525,29 @@ export async function createTransferServiceWithStopovers(
       };
     }
 
-    // Inserir todos os stopovers
+    // Inserir todos os stopovers com os dados de PAX processados
     const stopoversResult = await insertAllStopovers(
       connection,
       { service: { transfer: [transferService] } },
       serviceResult.serviceId,
       serviceResult.service.Identifier,
+      processedPaxData, // Passar os dados processados de PAX
     );
 
     return {
       success: true,
       service: serviceResult.service,
       serviceId: serviceResult.serviceId,
-      paxData: serviceResult.paxData,
+      paxData: processedPaxData, // Retornar os dados processados
       stopovers: stopoversResult,
       code: "S130",
       message: `Transfer criado com sucesso. ${stopoversResult.successCount} stopovers inseridos, ${stopoversResult.errorCount} com erro.`,
     };
   } catch (error) {
-    console.error("Erro ao criar transfer com stopovers:", error);
     return {
       success: false,
       error: "E141",
-      message: error.message,
+      message: messages["E141"],
     };
   }
 }
@@ -365,31 +556,32 @@ export async function createTransferServiceWithStopovers(
 export async function getTransfersByService(connection, serviceId) {
   try {
     const [result] = await connection.query(
-      `SELECT IDMOS, IDMO, IDPerimeter, Identifier, Estimed, Driver, Number,
-              Origin, Destination, Vehicle
+      `SELECT Identifier IDMO, Created, Mode, IDPerimeter, 
+        Vehicle, Origin, Destination, Arrival, Departure, People
        FROM TRANSFER 
-       WHERE IDMOS = ?
-       ORDER BY IDMOS`,
+       WHERE IDMO = ? 
+       LIMIT 1`,
       [serviceId],
     );
 
+    if (result.length === 0) {
+      return {
+        success: false,
+        error: "E141",
+        message: messages["E141"],
+      };
+    }
+
     return {
       success: true,
-      transfers: result.map((transfer) => ({
-        ...transfer,
-        Estimed: transfer.Estimed ? JSON.parse(transfer.Estimed) : null,
-        Driver: transfer.Driver ? JSON.parse(transfer.Driver) : null,
-        Origin: transfer.Origin ? JSON.parse(transfer.Origin) : null,
-        Destination: transfer.Destination
-          ? JSON.parse(transfer.Destination)
-          : null,
-        Vehicle: transfer.Vehicle ? JSON.parse(transfer.Vehicle) : null,
-      })),
+      transfers: result[0],
     };
   } catch (error) {
+    console.error("Erro ao buscar transfers:", error);
     return {
       success: false,
-      error: error.message,
+      error: "E142",
+      message: messages["E142"],
     };
   }
 }
