@@ -24,6 +24,8 @@
   "E126": "Reserva cancelada",
   "E127": "Erro ao verificar duplicata de serviço ",
   "E128": "Serviço com este identificador já existe para esta reserva",
+  "E129": "Erro de validação",
+  "E130": "Erro no stopover",
 
   "S120": "Conexão com MySQL estabelecida com sucesso!",
   "S121": "Reserva criada com sucesso!",

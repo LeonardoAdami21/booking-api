@@ -59,7 +59,7 @@ function parseFloatField(value, defaultValue = 0) {
 export async function getInsertedReservation(connection, insertId) {
   try {
     const [result] = await connection.query(
-      "SELECT IDMO, Business, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
+      "SELECT IDMO, Version, Created FROM `ORDER` WHERE IDMO = ? LIMIT 1",
       [insertId],
     );
     return result.length > 0 ? result[0] : null;
@@ -67,7 +67,6 @@ export async function getInsertedReservation(connection, insertId) {
     return {
       id: null,
       type: "reservation",
-      business: null,
       version: null,
       reservation: null,
       error: "E118",
@@ -95,7 +94,7 @@ export async function findReservation(connection, searchCriteria) {
 
   try {
     const query = `
-      SELECT IDMO, Business, Identifier, Version, Created, Status
+      SELECT IDMO, Identifier, IDIssuer, Issuer, Version, Created, Status, Booking
       FROM \`ORDER\` 
       WHERE ${whereFields.join(" AND ")} 
       LIMIT 1
@@ -107,7 +106,6 @@ export async function findReservation(connection, searchCriteria) {
     return {
       id: null,
       type: "reservation",
-      business: null,
       version: null,
       reservation: null,
       error: "E118",
@@ -117,22 +115,16 @@ export async function findReservation(connection, searchCriteria) {
 }
 
 // Função para verificar duplicidade de reserva (refatorada)
-export async function checkDuplicateReservation(
-  connection,
-  identifier,
-  business,
-) {
+export async function checkDuplicateReservation(connection, identifier) {
   try {
     const existing = await findReservation(connection, {
       Identifier: identifier,
-      Business: business,
     });
 
     if (existing && !existing.error) {
       return {
         id: existing.IDMO,
         type: "reservation",
-        business: business,
         version: existing.Version,
         reservation: null,
         error: null,
@@ -145,7 +137,6 @@ export async function checkDuplicateReservation(
     return {
       id: null,
       type: "reservation",
-      business: business,
       version: null,
       reservation: null,
       error: "E117",
@@ -155,12 +146,12 @@ export async function checkDuplicateReservation(
 }
 
 // Função para validar reserva
-export async function validateReservation(reservation) {
+export async function validateReservation(create) {
   // Validação básica de campos obrigatórios
 
-  if (reservation.pax && typeof reservation.pax === "object") {
-    for (const paxId in reservation.pax) {
-      const pax = reservation.pax[paxId];
+  if (create.pax && typeof create.pax === "object") {
+    for (const paxId in create.pax) {
+      const pax = create.pax[paxId];
       if (pax.main) {
         if (
           !pax.firstName ||
@@ -178,7 +169,7 @@ export async function validateReservation(reservation) {
     }
   }
 
-  return { valid: true, pax: reservation.pax };
+  return { valid: true, pax: create.pax };
 }
 
 // Função para obter o nome completo
@@ -192,7 +183,7 @@ export function getFullName(person) {
 const DEFAULT_EXPIRATION_DAYS = 30;
 const DEFAULT_PAX_ADULT = 2;
 // Função para preparar os dados da reserva (simplificada)
-export function prepareReservationData(business, version, reservation) {
+export function prepareReservationData(channel, create) {
   const now = new Date();
   const expirationDate = new Date(
     Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
@@ -201,49 +192,38 @@ export function prepareReservationData(business, version, reservation) {
   const data = {
     Created: now,
     Updated: now,
-    Confirmation: reservation.confirmation
-      ? new Date(reservation.confirmation)
-      : null,
-    Business: business,
-    Version: version || 1,
+    Confirmation: create.confirmation ? new Date(create.confirmation) : null,
+    Version: create.version || 1,
     Identifier: uuidv4(),
-    Status: reservation.status || "pending",
-    Channel: reservation.channel?.name || "unknown",
-    Locator: reservation?.conector?.code || null,
+    Status: create.status || "pending",
+    Channel: channel || "unknown",
+    Locator: create?.conector?.code || null,
 
-    // Company data
-    IDCompany: reservation.company?.id || null,
-    Company: reservation.company?.name || "",
-
-    // Client data
-    IDClient: reservation.client?.id || null,
-    Client: reservation.client?.name || "",
-
-    // Agent data
-    IDAgent: reservation.agent?.id || null,
-    Agent: reservation.agent ? getFullName(reservation.agent) : "",
+    // Issuer data
+    IDIssuer: create.issuer?.id || null,
+    Issuer: create.issuer?.name || "",
 
     // User data
-    IDUser: reservation.user?.id || null,
-    User: reservation.user ? getFullName(reservation.user) : "",
+    IDUser: create.user?.id || null,
+    User: create.user ? getFullName(create.user) : "",
 
     // Customer data
-    IDCustomer: reservation.customer?.id || null,
-    Customer: reservation.customer ? getFullName(reservation.customer) : "",
+    IDCustomer: create.customer?.id || null,
+    Customer: create.customer ? getFullName(create.customer) : "",
 
     // Financial
-    Price: reservation.total?.service?.price || 0.0,
-    Discount: reservation.total?.service?.discount || 0.0,
-    Taxes: reservation.total?.service?.tax || 0.0,
-    Markup: reservation.total?.service?.markup || 0.0,
-    Commission: reservation.total?.service?.commission || 0.0,
-    Cost: reservation.total?.service?.price || 0.0,
-    Rav: reservation.total?.service?.price || 0.0,
-    Total: reservation.total?.total || 0.0,
+    Price: create.total?.service?.price || 0.0,
+    Discount: create.total?.service?.discount || 0.0,
+    Markup: create.total?.service?.markup || 0.0,
+    Commission: create.total?.service?.commission || 0.0,
+    Cost: create.total?.service?.price || 0.0,
+    Total: create.total?.total || 0.0,
 
     // Extra info
-    Information: reservation.information || "",
-    Notes: reservation.notes || "",
+    Information: create.information || "",
+    Notes: create.notes || "",
+
+    Booking: create?.channel?.booking || null,
   };
 
   return data;

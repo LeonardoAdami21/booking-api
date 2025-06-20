@@ -1,0 +1,1494 @@
+{
+  "type": "create",
+  "channel": "d5xbh-khzt1-mwf2s-hjmngdg",
+  "create": {
+    "status": "confirmed",
+    "createdAt": "2025-06-16T18:46:00-03:00",
+    "expiresAt": "2025-06-16T18:46:00-03:00",
+    "confirmation": null,
+    "language": "pt-br",
+    "currency": "BRL",
+    "timezone": "America/Sao_Paulo",
+    "period": {
+      "start": "2025-07-24",
+      "end": "2025-07-28"
+    },
+    "channel": {
+      "reference": "asdfggh-fsdfghhj-asdfdgf",
+      "name": "Site de Exemplo",
+      "booking": "",
+      "outsourced": true
+    },
+    "issuer": {
+      "id": 5010,
+      "reference": 2002,
+      "name": "Cliente Exemplo Ltda",
+      "nick": "Cliente Exemplo",
+      "document": "98765432000110",
+      "email": "cliente@exemplo.com.br",
+      "website": "www.clienteexemplo.com.br",
+      "phone": "+55 21 99876-5432",
+      "address": {
+        "street": "Rua das Flores",
+        "number": "123",
+        "district": "Centro",
+        "postal": "20000-000",
+        "city": "Rio de Janeiro",
+        "state": "RJ",
+        "country": "Brazil",
+        "coordinates": {
+          "lat": -22.9068,
+          "lng": -43.1729
+        }
+      }
+    },
+    "customer": {
+      "id": 10,
+      "firstName": "João",
+      "lastName": "Silva",
+      "email": "joao.silva@email.com",
+      "phone": "+55 11 98765-4321",
+      "foreign": false,
+      "document": {
+        "type": "CPF",
+        "number": "12345678900"
+      },
+      "gender": "male",
+      "country": "BR"
+    },
+    "user": {
+      "id": 438,
+      "reference": 4004,
+      "firstName": "Maria",
+      "lastName": "Souza",
+      "phone": "+55 11 99999-8888",
+      "email": "maria.souza@agencia.com"
+    },
+    "pax": {
+      "PAX02024102314501543523": {
+        "main": false,
+        "firstName": "José",
+        "lastName": "Oliveira",
+        "phone": "+55 11 97777-6666",
+        "email": "jose.oliveira@email.com",
+        "country": "BR",
+        "document": {
+          "type": "CPF",
+          "number": "98765432100"
+        },
+        "birthdate": "1980-08-15",
+        "gender": "male",
+        "ageGroup": "adult",
+        "assignment": {
+          "rental": [],
+          "ticket": [],
+          "room": [],
+          "transfer": [],
+          "flight": [],
+          "tour": ["TOU2024071222464682090", "TOU2024071222464682005"],
+          "insurance": [],
+          "total": 2
+        }
+      }
+    },
+    "service": {
+      "room": [
+        {
+          "status": "confirmed",
+          "identifier": "ROOM2024071712135051625",
+          "createdAt": "2024-06-16T18:46:00-03:00",
+          "expiresAt": "2024-06-16T18:46:00-03:00",
+          "confirmation": "2024-06-22T18:46:00-03:00",
+          "image": [
+            "https://example.com/images/hotelroom1.jpg",
+            "https://example.com/images/hotelroom2.jpg"
+          ],
+          "type": "room",
+          "title": "Hilton Rio de Janeiro Copacabana",
+          "description": "Hospedagem de alto padrão com vista para o mar em Copacabana.",
+          "room": {
+            "category": {
+              "value": "Apartment (Apartamento completo)",
+              "code": "AP"
+            },
+            "capacity": {
+              "value": "Double (2 pessoas)",
+              "code": "D2"
+            },
+            "amenities": ["WIFI", "SAFE", "SHWR", "AIRCON", "MINIBAR"]
+          },
+          "board": {
+            "code": "RO",
+            "value": "Room Only",
+            "description": "Apenas hospedagem, sem alimentação incluída."
+          },
+          "star": 4,
+          "facilities": ["WIFI", "SAFE", "SHWR", "AIRCON", "MINIBAR"],
+          "provider": {
+            "id": 123,
+            "xref": 162,
+            "name": "Hotel Supplier Ltda",
+            "email": "contato@hotelsupplier.com",
+            "website": "https://www.hotelsupplier.com",
+            "phone": "+55 21 99999-9999",
+            "address": {
+              "street": "Av. Atlântica",
+              "number": "1020",
+              "district": "Copacabana",
+              "postal": "22010-000",
+              "city": "Rio de Janeiro",
+              "state": "Rio de Janeiro",
+              "country": "Brazil",
+              "coordinates": {
+                "lat": -22.971964,
+                "lng": -43.182553
+              }
+            }
+          },
+          "connector": {
+            "name": "hotelbeds",
+            "booking": "258-5337575",
+            "code": "123"
+          },
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "Check-in a partir das 14h. Estacionamento disponível com custo adicional. Animais não são permitidos."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "per_day",
+            "price": 800
+          },
+          "price": 1695.4,
+          "total": 2260.53,
+          "package": {
+            "included": true,
+            "description": "Inclui traslado do aeroporto e passeio ao Cristo Redentor."
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 75,
+              "applied": 75,
+              "total": 565.13,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 14,
+              "applied": 14,
+              "total": 316.47,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "Solicitar cama extra para criança no check-in.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "tour": [
+        {
+          "status": "scheduled",
+          "identifier": "TOUR2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "image": [
+            "https://example.com/images/bonde-serra1.jpg",
+            "https://example.com/images/bonde-serra2.jpg"
+          ],
+          "type": "tour",
+          "title": "Passeio de Bonde pela Serra Gaúcha",
+          "description": "Uma experiência inesquecível em um bonde clássico atravessando a deslumbrante Serra Gaúcha.",
+          "mode": "shared",
+          "included": [
+            {
+              "code": "guide",
+              "description": "Guia bilíngue"
+            },
+            {
+              "code": "ticket",
+              "description": "Ingresso para o passeio de bonde"
+            }
+          ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "provider": {
+            "code": 201,
+            "name": "Serra Turismo Ltda",
+            "email": "contato@serraturismo.com",
+            "website": "https://www.serraturismo.com",
+            "phone": "+55 54 99999-9999",
+            "address": {
+              "street": "Rua das Araucárias",
+              "number": "250",
+              "district": "Centro",
+              "postal": "95670-000",
+              "city": "Canela",
+              "state": "RS",
+              "country": "Brasil",
+              "coordinates": {
+                "lat": -29.357,
+                "lng": -50.812
+              }
+            }
+          },
+          "connector": {
+            "name": "localtour",
+            "booking": "LT-2024-001"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "Recomenda-se o uso de roupas confortáveis. Crianças devem estar acompanhadas por um responsável."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "per_person",
+            "price": 120
+          },
+          "price": 480,
+          "total": 520,
+          "package": {
+            "included": true,
+            "description": "Inclui transporte de ida e volta ao hotel e passeio guiado completo."
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 20,
+              "applied": 20,
+              "total": 96,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 48,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "Chegar com 15 minutos de antecedência. Necessário apresentar documento com foto.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "transfer": [
+        {
+          "status": "scheduled",
+          "identifier": "TRF2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "image": [
+            "https://example.com/images/transfer-van1.jpg",
+            "https://example.com/images/transfer-van2.jpg"
+          ],
+          "type": "transfer",
+          "title": "Transfer Aeroporto Salvador - Hotel Abrolhos",
+          "description": "Transporte privativo com conforto e segurança do Aeroporto de Salvador até o Hotel Abrolhos.",
+          "mode": "private",
+          "included": [
+            {
+              "code": "baggage",
+              "description": "1 mala grande e 1 mala de mão por passageiro"
+            },
+            {
+              "code": "insurance",
+              "description": "Seguro viagem incluso"
+            }
+          ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "stopover": [
+            {
+              "perimeter_id": 123,
+              "estimated": {
+                "departure": "2024-08-08T16:40:00-03:00",
+                "arrival": "2024-08-08T18:15:00-03:00"
+              },
+              "driver": {
+                "id": 1,
+                "name": "João Silva",
+                "phone": "+55 71 98765-4321"
+              },
+              "number": "TRF-1706",
+              "origin": {
+                "name": "Aeroporto Internacional de Salvador",
+                "city": "Salvador",
+                "state": "BA",
+                "type": "airport",
+                "country": "Brasil",
+                "iata": "SSA",
+                "coordinates": {
+                  "lat": -12.9086,
+                  "lng": -38.3225
+                }
+              },
+              "destination": {
+                "type": "hotel",
+                "name": "Abrolhos Praia Hotel",
+                "city": "Salvador",
+                "state": "BA",
+                "country": "Brasil",
+                "coordinates": {
+                  "lat": -12.9718,
+                  "lng": -38.5011
+                }
+              },
+              "vehicle": {
+                "name": "Van Executiva Mercedes-Benz",
+                "classification": "van",
+                "capacity": 10,
+                "plate": "QWX9E34"
+              }
+            }
+          ],
+          "provider": {
+            "id": 201,
+            "code": 201,
+            "name": "Transfers Bahia",
+            "email": "reservas@transfersbahia.com",
+            "website": "https://www.transfersbahia.com",
+            "phone": "+55 71 99999-8888",
+            "address": {
+              "street": "Rua das Gaivotas",
+              "number": "123",
+              "district": "Imbuí",
+              "postal": "41720-130",
+              "city": "Salvador",
+              "state": "BA",
+              "country": "Brasil",
+              "coordinates": {
+                "lat": -12.973,
+                "lng": -38.502
+              }
+            }
+          },
+          "connector": {
+            "name": "civitatis",
+            "booking": "CIV-443212"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "O motorista aguardará até 1h após o horário previsto de desembarque. É obrigatório informar número do voo."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "per_service",
+            "price": 500
+          },
+          "price": 500,
+          "total": 500,
+          "package": {
+            "included": false,
+            "description": "Serviço adquirido separadamente do pacote principal."
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 5,
+              "applied": 5,
+              "total": 25,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 50,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "Favor informar número do voo com 24h de antecedência.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "ticket": [
+        {
+          "status": "scheduled",
+          "identifier": "TICKET2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "image": [
+            "https://example.com/images/terra-magica1.jpg",
+            "https://example.com/images/terra-magica2.jpg"
+          ],
+          "type": "ticket",
+          "title": "Ingresso Parque Terra Mágica Florybal",
+          "description": "Entrada para o parque temático Terra Mágica Florybal, com atrações para todas as idades em meio à natureza da Serra Gaúcha.",
+          "mode": "individual",
+          "included": [
+            {
+              "code": "entry",
+              "description": "Acesso a todas as atrações do parque"
+            }
+          ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "provider": {
+            "id": 202,
+            "code": 202,
+            "name": "Florybal Turismo e Eventos",
+            "email": "contato@florybal.com.br",
+            "website": "https://www.florybal.com.br",
+            "phone": "+55 54 3286-1234",
+            "address": {
+              "street": "Rodovia RS-466",
+              "number": "1635",
+              "district": "Carazal",
+              "postal": "95670-000",
+              "city": "Canela",
+              "state": "RS",
+              "country": "Brasil",
+              "coordinates": {
+                "lat": -29.3275,
+                "lng": -50.8406
+              }
+            }
+          },
+          "connector": {
+            "name": "florybal-api",
+            "booking": "FLY-API-01"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "É obrigatória a apresentação de documento com foto. Ingressos válidos apenas para o dia selecionado."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "per_person",
+            "price": 90
+          },
+          "price": 270,
+          "total": 270,
+          "package": {
+            "included": false,
+            "description": ""
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 27,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 8,
+              "applied": 8,
+              "total": 21.6,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "Apresente o voucher digital na entrada. A entrada é válida apenas na data selecionada.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "insurance": [
+        {
+          "status": "confirmed",
+          "identifier": "INS2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "image": ["https://globalseguros.com/policy/GLB123456789"],
+          "type": "insurance",
+          "title": "Seguro Viagem América do Sul",
+          "description": "Cobertura completa para emergências médicas, extravio de bagagem e cancelamento de viagem.",
+          "coverage": "Internacional",
+          "plan": "Master Plus",
+          "policy": "GLB123456789",
+          "details": [
+            {
+              "type": "Médica",
+              "description": "Despesas médicas e hospitalares",
+              "amount": 30000,
+              "currency": "USD"
+            },
+            {
+              "type": "Bagagem",
+              "description": "Extravio de bagagem",
+              "amount": 1200,
+              "currency": "USD"
+            },
+            {
+              "type": "Cancelamento",
+              "description": "Cancelamento de viagem por motivos de saúde",
+              "amount": 2000,
+              "currency": "USD"
+            }
+          ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "provider": {
+            "id": 1,
+            "code": 210,
+            "name": "Global Seguros",
+            "email": "atendimento@globalseguros.com",
+            "website": "https://www.globalseguros.com",
+            "phone": "+55 11 98888-0000",
+            "address": {
+              "street": "Av. Paulista",
+              "number": "1234",
+              "district": "Bela Vista",
+              "postal": "01310-000",
+              "city": "São Paulo",
+              "state": "SP",
+              "country": "Brasil",
+              "coordinates": {
+                "lat": -23.561684,
+                "lng": -46.656139
+              }
+            }
+          },
+          "connector": {
+            "name": "segconnect",
+            "booking": "SC-889456"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "Cobertura válida apenas para residentes no Brasil. É necessário portar documento com foto durante a viagem."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "total",
+            "price": 450
+          },
+          "price": 450,
+          "total": 450,
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 45,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 15,
+              "applied": 15,
+              "total": 67.5,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "A apólice será enviada por e-mail em até 24h após a confirmação.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "flight": [
+        {
+          "status": "scheduled",
+          "identifier": "TICKET2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "source": "manual",
+          "type": "flight",
+          "trip": "oneway",
+          "title": "Passagem Aérea São Paulo - Belo Horizonte (ida) / Salvador - Rio de Janeiro (volta)",
+          "iata": {
+            "from": "CGH",
+            "to": "CNF"
+          },
+          "segments": {
+            "departure": [
+              {
+                "airline": {
+                  "code": "G3",
+                  "name": "Gol Linhas Aéreas"
+                },
+                "flight": {
+                  "number": "4797",
+                  "type": "regular",
+                  "equipment": "A320",
+                  "duration": "01:35",
+                  "class": "ECONOMIC",
+                  "tariff": "S21CXMBG",
+                  "family": "Azul",
+                  "route": "D"
+                },
+                "baggage": {
+                  "checked": {
+                    "included": true,
+                    "quantity": 1,
+                    "weight": {
+                      "value": 23,
+                      "unit": "kg"
+                    }
+                  },
+                  "hand": {
+                    "included": true,
+                    "quantity": 1,
+                    "weight": {
+                      "value": 10,
+                      "unit": "kg"
+                    }
+                  }
+                },
+                "origin": {
+                  "iata": "CGH",
+                  "name": "Congonhas",
+                  "city": "São Paulo",
+                  "state": "SP",
+                  "country": "Brasil",
+                  "coordinates": {
+                    "lat": -23.6261,
+                    "lng": -46.6566
+                  }
+                },
+                "destination": {
+                  "iata": "CNF",
+                  "name": "Confins",
+                  "city": "Belo Horizonte",
+                  "state": "MG",
+                  "country": "Brasil",
+                  "coordinates": {
+                    "lat": -19.6337,
+                    "lng": -43.9689
+                  }
+                },
+                "times": {
+                  "estimated_departure": "2024-07-24T07:20:00-03:00",
+                  "estimated_arrival": "2024-07-24T08:55:00-03:00"
+                },
+                "gate": 10,
+                "meals": [
+                  {
+                    "type": "snack",
+                    "description": "Biscoito integral com suco de maçã",
+                    "diet": "regular",
+                    "included": true
+                  }
+                ],
+                "connection": false,
+                "key": "as90df8g908f"
+              }
+            ],
+            "return": [
+              {
+                "airline": {
+                  "code": "G3",
+                  "name": "Gol Linhas Aéreas"
+                },
+                "flight": {
+                  "number": "4797",
+                  "type": "regular",
+                  "equipment": "A320",
+                  "duration": "01:35",
+                  "class": "ECONOMIC",
+                  "tariff": "S21CXMBG",
+                  "family": "Azul",
+                  "route": "D"
+                },
+                "baggage": {
+                  "checked": {
+                    "included": true,
+                    "quantity": 1,
+                    "weight": {
+                      "value": 23,
+                      "unit": "kg"
+                    }
+                  },
+                  "hand": {
+                    "included": true,
+                    "quantity": 1,
+                    "weight": {
+                      "value": 10,
+                      "unit": "kg"
+                    }
+                  }
+                },
+                "origin": {
+                  "iata": "CGH",
+                  "name": "Congonhas",
+                  "city": "São Paulo",
+                  "state": "SP",
+                  "country": "Brasil",
+                  "coordinates": {
+                    "lat": -23.6261,
+                    "lng": -46.6566
+                  }
+                },
+                "destination": {
+                  "iata": "CNF",
+                  "name": "Confins",
+                  "city": "Belo Horizonte",
+                  "state": "MG",
+                  "country": "Brasil",
+                  "coordinates": {
+                    "lat": -19.6337,
+                    "lng": -43.9689
+                  }
+                },
+                "times": {
+                  "estimated_departure": "2024-07-24T07:20:00-03:00",
+                  "estimated_arrival": "2024-07-24T08:55:00-03:00"
+                },
+                "gate": 10,
+                "meals": [
+                  {
+                    "type": "snack",
+                    "description": "Biscoito integral com suco de maçã",
+                    "diet": "regular",
+                    "included": true
+                  }
+                ],
+                "connection": false,
+                "key": "as90df8g908f"
+              }
+            ]
+          },
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "provider": {
+            "code": 503,
+            "name": "Latam"
+          },
+          "connector": {
+            "name": "latam-api",
+            "booking": "LATAM-API-01"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "info",
+              "description": "Apresente documento com foto no embarque. Check-in obrigatório até 1h antes da decolagem."
+            }
+          ],
+          "currency": "BRL",
+          "break": {
+            "type": "per_person",
+            "price": 900
+          },
+          "price": 2700,
+          "total": 2700,
+          "package": {
+            "included": false,
+            "description": ""
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 270,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 5,
+              "applied": 5,
+              "total": 135,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX02024102314501543523"],
+          "information": "Check-in disponível 48h antes do voo. Apresente o bilhete eletrônico no aeroporto.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ],
+      "rental": [
+        {
+          "status": "scheduled",
+          "identifier": "RENTAL2024071712135051625",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
+          "type": "rental",
+          "title": "Chevrolet Onix Plus / Fiat Cronos | Volks - Unidas",
+          "image": [
+            "https://example.com/images/rental1.jpg",
+            "https://example.com/images/rental2.jpg"
+          ],
+          "acriss": "EDMR",
+          "pickUp": {
+            "code": "BTAM",
+            "type": "agency",
+            "date": "2024-11-21T10:00:00",
+            "address": "Av das Américas, 679",
+            "city": "Rio de Janeiro",
+            "state": "RJ",
+            "country": "BR",
+            "coordinates": {
+              "lat": -22.975918,
+              "lng": -43.365871
+            },
+            "phone": "+55 21 2042-3842",
+            "email": "rio1@unidas.com.br"
+          },
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "dropOff": {
+            "code": "BTAM",
+            "type": "agency",
+            "date": "2024-11-23T10:00:00",
+            "address": "Av das Américas, 679",
+            "city": "Rio de Janeiro",
+            "state": "RJ",
+            "country": "BR",
+            "coordinates": {
+              "lat": -22.975918,
+              "lng": -43.365871
+            },
+            "phone": "+55 21 2042-3842",
+            "email": "rio1@unidas.com.br"
+          },
+          "class": "Especial",
+          "details": {
+            "category": "ESP",
+            "fuel": "FLX",
+            "doors": "D4",
+            "luggage": "B4",
+            "luggage_details": {
+              "type": "porta-malas",
+              "capacity": "4 malas médias",
+              "volume": "470L"
+            },
+            "passenger": "P5",
+            "transmission": "MAN",
+            "air_conditioning": "AC"
+          },
+          "coverage": {
+            "pricedCoverage": true,
+            "code": "COM",
+            "title": "Proteção Premium",
+            "description": "Proteção contra colisões (LDW), roubo (TP), terceiros (ALI) e assistência 24h.",
+            "amount": 158.7,
+            "taxInclusive": false,
+            "includedEst": true,
+            "includedRate": true,
+            "percentage": 0,
+            "currency": "BRL",
+            "unit": 52.9,
+            "time": "day",
+            "quantity": 3
+          },
+          "optionals": [
+            {
+              "code": "EXTRA_DRIVER",
+              "description": "Condutor Adicional",
+              "amount": 33,
+              "currency": "BRL",
+              "taxInclusive": false,
+              "guaranteed": true,
+              "includedRate": false,
+              "unit": 11,
+              "tax": 2,
+              "time": "day",
+              "percentage": 0,
+              "quantity": 1
+            },
+            {
+              "code": "CHILD_SEAT",
+              "description": "Cadeirinha Infantil",
+              "amount": 35,
+              "currency": "BRL",
+              "taxInclusive": false,
+              "guaranteed": false,
+              "includedRate": false,
+              "unit": 35,
+              "tax": 3.5,
+              "time": "day",
+              "percentage": 0,
+              "quantity": 1
+            }
+          ],
+          "provider": {
+            "code": "IND",
+            "name": "Unidas"
+          },
+          "connector": {
+            "name": "unidas-api",
+            "booking": "UNIDAS-API-01"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
+          "cancellation": {
+            "currency": "BRL",
+            "rules": [
+              {
+                "type": "full_refund",
+                "deadline": 48,
+                "percent": 100,
+                "description": "Reembolso integral até 48 horas antes."
+              },
+              {
+                "type": "partial_refund",
+                "deadline": 36,
+                "percent": 10,
+                "description": "Reembolso de 10% até 36 horas antes."
+              },
+              {
+                "type": "no_refund",
+                "deadline": 24,
+                "percent": 0,
+                "description": "Sem reembolso após 24 horas antes."
+              }
+            ]
+          },
+          "policies": [
+            {
+              "type": "requirement",
+              "description": "Apresente CNH válida no momento da retirada."
+            },
+            {
+              "type": "requirement",
+              "description": "A idade mínima do condutor deve ser de 21 anos."
+            },
+            {
+              "type": "requirement",
+              "description": "Cartão de crédito obrigatório para caução."
+            }
+          ],
+          "currency": "BRL",
+          "price": 540,
+          "total": 540,
+          "break": {
+            "type": "per_vehicle",
+            "price": 540
+          },
+          "package": {
+            "included": false,
+            "description": ""
+          },
+          "pricing": {
+            "fees": {
+              "description": "Taxa Arraial",
+              "included": false,
+              "currency": "BRL",
+              "taxes": [
+                {
+                  "name": "Ecológica",
+                  "type": "percent",
+                  "value": 2,
+                  "total": 10
+                },
+                {
+                  "name": "ISS",
+                  "type": "percent",
+                  "value": 5,
+                  "total": 10
+                }
+              ]
+            },
+            "markup": {
+              "included": true,
+              "current": 10,
+              "applied": 10,
+              "total": 54,
+              "currency": "BRL"
+            },
+            "commission": {
+              "included": true,
+              "current": 5,
+              "applied": 5,
+              "total": 27,
+              "currency": "BRL"
+            }
+          },
+          "exchange": {
+            "buy": 1,
+            "operation": 1,
+            "from": "BRL",
+            "to": "BRL"
+          },
+          "assigned": ["PAX20250605123000123456"],
+          "information": "A locadora exige caução no cartão de crédito do titular da reserva. Apresente CNH válida.",
+          "pax": {
+            "infant": 0,
+            "child_ages": [5, 9],
+            "adult": 2,
+            "senior": 0,
+            "other": 1
+          },
+          "options": ["voucher-per-pax"],
+          "repository": {}
+        }
+      ]
+    },
+    "total": {
+      "service": {
+        "price": 4578.36,
+        "commission": 758.54,
+        "markup": 1370.59,
+        "fee": 0,
+        "discount": 0,
+        "total": 6359.78,
+        "room": {
+          "price": 1695.4,
+          "commission": 316.48,
+          "markup": 565.13,
+          "fee": 0,
+          "discount": 0,
+          "total": 2260.53
+        },
+        "flight": {
+          "price": 2283.2,
+          "commission": 367.09,
+          "markup": 655.52,
+          "fee": 0,
+          "discount": 0,
+          "total": 2938.72
+        },
+        "ticket": {
+          "price": 599.76,
+          "commission": 74.97,
+          "markup": 149.94,
+          "fee": 0,
+          "discount": 0,
+          "total": 749.7
+        },
+        "rental": {
+          "price": 734.5,
+          "commission": 74.97,
+          "markup": 149.94,
+          "fee": 0,
+          "discount": 0,
+          "total": 734.5
+        },
+        "transfer": {
+          "price": 144,
+          "commission": 74.97,
+          "markup": 149.94,
+          "fee": 0,
+          "discount": 0,
+          "total": 144
+        },
+        "tour": {
+          "price": 522,
+          "commission": 74.97,
+          "markup": 149.94,
+          "fee": 0,
+          "discount": 0,
+          "total": 522
+        },
+        "insurance": {
+          "price": 9.33,
+          "commission": 74.97,
+          "markup": 149.94,
+          "fee": 0,
+          "discount": 0,
+          "total": 9.33
+        }
+      },
+      "total": 6359.78
+    },
+    "information": "",
+    "schedule": [
+      ["room", "ROOM2024071712135051625"],
+      ["transfer", "TRF2024071712135051625"],
+      ["tour", "TOUR2024071712135051625"],
+      ["flight", "FLG2024071712135051625"]
+    ]
+  },
+  "error": "E000",
+  "message": "Reserva carregada com sucesso"
+}

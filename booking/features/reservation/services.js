@@ -1,11 +1,11 @@
 import { loadErrorMessages } from "../../index.js";
-import { v4 as uuidv4 } from "uuid";
+import {
+  createTransferServiceWithStopovers,
+  insertAllStopovers,
+} from "./transfer.js";
 const messages = await loadErrorMessages("pt-BR");
 
-// ============================================================================
-// CONSTANTES E CONFIGURAÇÕES
-// ============================================================================
-
+// Constantes de serviços
 const SERVICE_TYPES = {
   ROOM: "room",
   TRANSFER: "transfer",
@@ -21,9 +21,6 @@ const SERVICE_TYPES = {
 const DEFAULT_EXPIRATION_DAYS = 30;
 const DEFAULT_PAX_ADULT = 2;
 
-// ============================================================================
-// FUNÇÕES UTILITÁRIAS
-// ============================================================================
 
 function createSafeDate(dateValue, fallback = new Date()) {
   if (!dateValue) return fallback;
@@ -58,43 +55,83 @@ function createResponse(success, data = {}, error = null) {
   };
 }
 
-// ============================================================================
-// VALIDAÇÕES
-// ============================================================================
+
+function extractServicesFromBooking(bookingData) {
+  const extractedServices = [];
+
+  if (!bookingData?.service) {
+    return extractedServices;
+  }
+
+  const serviceTypes = bookingData.service;
+
+  // Iterar por cada tipo de serviço (room, transfer, ticket, etc.)
+  Object.keys(serviceTypes).forEach((serviceType) => {
+    const servicesArray = serviceTypes[serviceType];
+
+    // Verificar se é um array
+    if (Array.isArray(servicesArray)) {
+      servicesArray.forEach((serviceItem, index) => {
+        extractedServices.push({
+          ...serviceItem,
+          type: serviceType, // Adicionar o tipo do serviço
+          originalIndex: index, // Manter referência do índice original
+          serviceGroup: serviceType, // Para referência futura
+        });
+      });
+    } else {
+      return {
+        success: false,
+        error: "Nenhum serviço encontrado na reserva.",
+        message: messages["E123"] || "Nenhum serviço encontrado",
+      };
+    }
+  });
+  return extractedServices;
+}
+
+function getServiceByTypeAndIndex(bookingData, serviceType, index = 0) {
+  if (!bookingData?.service?.[serviceType]) {
+    return {
+      success: false,
+      error: "Nenhum serviço encontrado na reserva.",
+      message: messages["E123"] || "Nenhum serviço encontrado",
+    };
+  }
+
+  const servicesArray = bookingData.service[serviceType];
+
+  if (!Array.isArray(servicesArray) || servicesArray.length <= index) {
+    return null;
+  }
+
+  return {
+    ...servicesArray[index],
+    type: serviceType,
+    originalIndex: index,
+    serviceGroup: serviceType,
+  };
+}
 
 function validateServiceData(serviceData, options = {}) {
-  const {
-    requireIdentifier = true,
-    requirePeriod = true,
-    requireSupplier = false,
-    requirePax = false,
-  } = options;
-
   if (!serviceData.identifier) {
     throw new Error(messages["E115"] || "Identificador é obrigatório");
   }
 
-  if (
-    requirePeriod &&
-    (!serviceData.period?.start || !serviceData.period?.end)
-  ) {
+  if (!serviceData?.checkin || !serviceData?.checkout) {
     throw new Error(messages["E123"] || "Período é obrigatório");
   }
 
-  if (requireSupplier && !serviceData.supplier?.id) {
-    throw new Error(messages["E124"] || "Fornecedor é obrigatório");
-  }
-
-  if (requirePax && !serviceData.pax?.adult && !serviceData.pax?.child) {
+  if (!serviceData.pax?.adult && !serviceData.pax?.child) {
     throw new Error(
       messages["E125"] || "Informações de ocupação são obrigatórias",
     );
   }
 
   // Validar datas se período for fornecido
-  if (serviceData.period?.start && serviceData.period?.end) {
-    const startDate = createSafeDate(serviceData.period.start);
-    const endDate = createSafeDate(serviceData.period.end);
+  if (serviceData?.checkin && serviceData?.checkout) {
+    const startDate = createSafeDate(serviceData.checkin);
+    const endDate = createSafeDate(serviceData.checkout);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new Error("Datas inválidas");
@@ -106,51 +143,33 @@ function validateServiceData(serviceData, options = {}) {
       );
     }
   }
-
   return { valid: true };
 }
 
-// ============================================================================
-// FUNÇÕES DE BANCO DE DADOS
-// ============================================================================
-
-export async function validateReservationExists(connection, idmo, business) {
+export async function validateBookingExists(connection, channel) {
   try {
     const [result] = await connection.query(
-      `SELECT IDMO, Business, Identifier, Status, IDAgent, Agent, 
-              IDUser, User
+      `SELECT Channel, Identifier, Status, IDIssuer, Issuer, 
+              IDUser, User, IDMO
        FROM \`ORDER\`
-       WHERE IDMO = ? AND Business = ?
+       WHERE Channel = ?
        LIMIT 1`,
-      [idmo, business],
+      [channel],
     );
 
     if (result.length === 0) {
       return createResponse(false, {}, { code: "E116" });
     }
 
-    const reservation = result[0];
+    const booking = result[0];
 
-    if (reservation.Status === "cancelled") {
+    if (booking.Status === "cancelled") {
       return createResponse(false, {}, { code: "E126" });
     }
 
-    return createResponse(true, { reservation });
+    return createResponse(true, { booking });
   } catch (error) {
-    console.error("Erro na validação da reserva:", error);
     throw new Error(messages["E114"] || "Erro na validação da reserva");
-  }
-}
-
-export async function checkDuplicateService(connection, identifier, idmo) {
-  try {
-    const [existing] = await connection.query(
-      "SELECT IDMOS, Identifier, Status FROM `SERVICE` WHERE Identifier = ? AND IDMO = ? LIMIT 1",
-      [identifier, idmo],
-    );
-    return existing.length > 0 ? existing[0] : null;
-  } catch (error) {
-    return createResponse(false, {}, { code: "E127" });
   }
 }
 
@@ -165,8 +184,8 @@ export async function getInsertedService(connection, serviceId) {
     }
 
     const [result] = await connection.query(
-      `SELECT IDMOS, IDMO, Identifier, Status, Description, Price, Total, 
-              Currency,IDAttendant, Attendant, StartDate, EndDate, Information, People, Source, Options
+      `SELECT IDMOS, IDMO, Identifier, Status, Title, Price, Total, Fee,
+              Currency, CheckIn, CheckOut, Information, Source, Options, Included
        FROM SERVICE 
        WHERE IDMOS = ? LIMIT 1`,
       [serviceId],
@@ -178,53 +197,13 @@ export async function getInsertedService(connection, serviceId) {
 
     return createResponse(true, { service: result[0] });
   } catch (error) {
-    console.error("Erro ao buscar serviço inserido:", error);
-    return createResponse(false, {}, { code: "E127" });
+    return {
+      success: false,
+      error: "E114",
+      message: messages["E114"] || "Erro na validação do serviço",
+    };
   }
 }
-
-// ============================================================================
-// PROCESSAMENTO DE PAX (DADOS VINDOS DO JSON EXTERNO)
-// ============================================================================
-
-// Função para processar dados de PAX
-function processPaxData(assignedPaxIds, paxJsonData) {
-  if (!paxJsonData || !assignedPaxIds) return [];
-
-  const assignedIds = Array.isArray(assignedPaxIds)
-    ? assignedPaxIds
-    : [assignedPaxIds];
-
-  return assignedIds
-    .map((paxId) => {
-      const paxDetails = paxJsonData[paxId];
-      if (!paxDetails) return null;
-
-      // Remove os campos desnecessários e mantém apenas a estrutura desejada
-      const { id, assignment, ...paxFormatted } = paxDetails;
-
-      return {
-        main: paxFormatted.main || false,
-        firstName: paxFormatted.firstName || "",
-        lastName: paxFormatted.lastName || "",
-        phone: paxFormatted.phone || "",
-        email: paxFormatted.email || "",
-        country: paxFormatted.country || "",
-        document: {
-          type: paxFormatted.document?.type || "",
-          number: paxFormatted.document?.number || "",
-        },
-        birthdate: paxFormatted.birthdate || "",
-        gender: paxFormatted.gender || "",
-        ageGroup: paxFormatted.ageGroup || "",
-      };
-    })
-    .filter((pax) => pax !== null);
-}
-
-// ============================================================================
-// PREPARAÇÃO DE DADOS DO SERVIÇO
-// ============================================================================
 
 const VALID_SOURCES = [
   "manual",
@@ -238,103 +217,94 @@ const VALID_SOURCES = [
 const DEFAULT_SOURCE = "manual";
 
 function getValidSource(sourceValue) {
-  // Se não foi fornecido um source, usar o padrão
   if (!sourceValue) {
     return DEFAULT_SOURCE;
   }
 
-  // Converter para string e fazer lowercase para comparação
   const normalizedSource = String(sourceValue).toLowerCase().trim();
 
-  // Verificar se o source é válido
   if (VALID_SOURCES.includes(normalizedSource)) {
     return normalizedSource;
   }
-
-  // Se não for válido, retornar o padrão
-  console.warn(
-    `Source inválido: ${sourceValue}. Usando padrão: ${DEFAULT_SOURCE}`,
-  );
   return DEFAULT_SOURCE;
 }
 
-function prepareServiceData(serviceData, reservation, processedPax) {
+function prepareServiceData(serviceItem, booking) {
   const now = new Date();
   const expirationDate = new Date(
     Date.now() + DEFAULT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000,
   );
 
   // Descrição dinâmica baseada no tipo
-  let description = serviceData.description || "Descrição não disponível";
-  if (serviceData.room?.category?.value) {
-    description = `${serviceData.room.category.value} com ${serviceData.room.capacity?.value || "capacidade não informada"}`;
-  } else if (serviceData.title) {
-    description = serviceData.title;
+  let description = serviceItem.title || "Descrição não disponível";
+  if (serviceItem.room?.category?.value) {
+    description = `${serviceItem.room.category.value} com ${serviceItem.room.capacity?.value || "capacidade não informada"}`;
+  } else if (serviceItem.title) {
+    description = serviceItem.title;
   }
 
-  // Informações do quarto
+  // Informações do quarto (se aplicável)
   let roomInfo = "";
   if (
-    serviceData.room?.capacity?.code &&
-    serviceData.room?.category?.code &&
-    serviceData.board?.code
+    serviceItem.room?.capacity?.code &&
+    serviceItem.room?.category?.code &&
+    serviceItem.board?.code
   ) {
-    roomInfo = `${serviceData.room.capacity.code} - ${serviceData.room.category.code} - ${serviceData.board.code}`;
+    roomInfo = `${serviceItem.room.capacity.code} - ${serviceItem.room.category.code} - ${serviceItem.board.code}`;
   }
 
   // Preparar dados base
   const baseData = {
     Created: now,
-    Updated: now,
-    Expiration: createSafeDate(serviceData.expiresAt, expirationDate),
-    Confirmation: formatSafeDate(serviceData.confirmation, now),
-    Identifier: reservation.identifier,
-    Status: serviceData.status,
-    IDMO: reservation.IDMO,
-    Identifier: serviceData.identifier,
-    Type: serviceData.type || SERVICE_TYPES.ROOM,
-    Code: parseNumber(serviceData.board?.code, 0),
-    Description: description,
-    IDAttendant: serviceData.IDAttendant || 0,
-    Attendant: serviceData.Attendant || "",
-    Supplier: serviceData.supplier?.name || "",
-    IDSupplier: serviceData.supplier?.id || 0,
-    User: reservation.User || "",
-    IDUser: reservation.IDUser || 0,
-    Locator: serviceData.connector?.code || "",
-    Source: getValidSource(serviceData.source),
-    StartLocation: JSON.stringify(serviceData.destination || {}),
-    EndLocation: JSON.stringify(serviceData.destination || {}),
-    StartDate: formatSafeDate(serviceData.period?.start, now),
-    EndDate: formatSafeDate(serviceData.period?.end, expirationDate),
-    People: JSON.stringify({ pax: processedPax }),
-    Infant: serviceData.pax?.infant || 0,
-    Child: serviceData.pax?.child || 0,
-    Adult: serviceData.pax?.adult || DEFAULT_PAX_ADULT,
-    Senior: serviceData.pax?.senior || 0,
-    Information: serviceData.information || "",
-    Room: roomInfo,
-    BreakType: serviceData.break?.type || "",
-    BreakPrice: parseNumber(serviceData.break?.price, 0, true),
-    Price: parseNumber(serviceData.price, 0, true),
-    Taxes: parseNumber(serviceData.pricing?.taxes?.total, 0, true),
-    MarkupInfo: JSON.stringify(serviceData.pricing?.markup || {}),
-    TaxesInfo: JSON.stringify(serviceData.pricing?.taxes || {}, null, 0),
-    CommissionInfo: JSON.stringify(serviceData.pricing?.commission || {}),
-    Commission: parseNumber(
-      serviceData.pricing.taxes[0]?.commission?.value || 0,
+    Updated: null,
+    Expiration: null,
+    Confirmation: formatSafeDate(serviceItem.confirmation, now),
+    Identifier: serviceItem.identifier || booking.Identifier,
+    Status: serviceItem.status || "pending",
+    IDMO: booking.IDMO,
+    Type: serviceItem.type || SERVICE_TYPES.ROOM,
+    XRef: serviceItem.board?.xref || "",
+    Title: description,
+    IDProvider: serviceItem.IDProvider || 0,
+    Provider: serviceItem.Provider || "",
+    User: booking.User || "",
+    IDUser: booking.IDUser || 0,
+    Connector: serviceItem.connector?.name || "",
+    Booking: serviceItem.connector?.booking || "",
+    Source: getValidSource(serviceItem.source),
+    CheckIn: formatSafeDate(serviceItem.checkin, now),
+    CheckOut: formatSafeDate(serviceItem.checkout, expirationDate),
+    Infant: serviceItem.pax?.infant || 0,
+    Child: serviceItem.pax?.child || 0,
+    Adult: serviceItem.pax?.adult || DEFAULT_PAX_ADULT,
+    Senior: serviceItem.pax?.senior || 0,
+    Information: serviceItem.information || "",
+    Unit: roomInfo,
+    BreakType: serviceItem.break?.type || "",
+    BreakPrice: parseNumber(serviceItem.break?.price, 0, true),
+    Price: parseNumber(serviceItem.price, 0, true),
+    Fee: parseNumber(serviceItem.pricing?.fees?.total, 0, true),
+    MarkupInfo: JSON.stringify(serviceItem.pricing?.markup || {}),
+    FeeInfo: JSON.stringify(serviceItem.pricing?.fees || {}),
+    CommissionInfo: JSON.stringify(serviceItem.pricing?.commission || {}),
+    Commission: parseNumber(serviceItem.pricing?.commission?.total, 0, true),
+    Discount: parseNumber(serviceItem.discount, 0, true),
+    Rebate: parseNumber(serviceItem.rebate, 0, true),
+    Cost: parseNumber(serviceItem.price, 0, true),
+    Bonification: parseNumber(serviceItem.bonification, 0, true),
+    Extra: parseNumber(serviceItem.extra, 0, true),
+    Total: parseNumber(
+      serviceItem.pricing?.total || serviceItem.price,
+      0,
+      true,
     ),
-
-    Discount: parseNumber(serviceData.discount, 0, true),
-    Rebate: parseNumber(serviceData.rebate, 0, true),
-    Cost: parseNumber(serviceData.price, 0, true),
-    Bonification: parseNumber(serviceData.bonification, 0, true),
-    Extra: parseNumber(serviceData.extra, 0, true),
-    Total: parseNumber(serviceData.pricing.taxes[0]?.price?.total || 0),
-    Markup: parseNumber(serviceData.pricing.taxes[0]?.markup?.value || 0, true),
-    Currency: serviceData.currency || "BRL",
-    Exchange: JSON.stringify(serviceData.exchange || {}),
-    Options: JSON.stringify(serviceData.options || [], null),
+    Markup: parseNumber(serviceItem.pricing?.markup?.total, 0, true),
+    Currency: serviceItem.currency || "BRL",
+    Exchange: JSON.stringify(serviceItem.exchange || {}),
+    Options: JSON.stringify(serviceItem.options || []),
+    Included: JSON.stringify(
+      serviceItem?.included?.map((item) => item.code) || null,
+    ),
   };
 
   return baseData;
@@ -359,133 +329,443 @@ function buildInsertQuery(serviceData) {
   };
 }
 
-// ============================================================================
-// FUNÇÃO PRINCIPAL
-// ============================================================================
+// Função corrigida para validar dados de transfer com stopovers
+function validateTransferServiceData(bookingJsonData, options = {}) {
+  const transferServices = bookingJsonData?.service?.transfer;
 
-export async function createService(
+  if (!transferServices || !Array.isArray(transferServices)) {
+    return {
+      success: false,
+      message: "O campo 'transfer' deve ser um array de transfer.",
+    };
+  }
+
+  transferServices.forEach((transfer, transferIndex) => {
+    if (!Array.isArray(transfer.stopover) || transfer.stopover.length === 0) {
+      return {
+        success: false,
+        message: `Transfer ${transferIndex + 1}: stopovers deve conter ao menos um stopover.`,
+      };
+    }
+
+    transfer.stopover.forEach((stopover, stopoverIndex) => {
+      if (!stopover.origin) {
+        return {
+          success: false,
+          message: `Transfer ${transferIndex + 1}, Stopover ${stopoverIndex + 1}: origem é obrigatória.`,
+        };
+      }
+
+      if (!stopover.destination) {
+        return {
+          success: false,
+          message: `Transfer ${transferIndex + 1}, Stopover ${stopoverIndex + 1}: destino é obrigatório.`,
+        };
+      }
+
+      if (!stopover.estimated?.departure || !stopover.estimated?.arrival) {
+        return {
+          success: false,
+          message: `Transfer ${transferIndex + 1}, Stopover ${stopoverIndex + 1}: horário de partida e chegada é obrigatório.`,
+        };
+      }
+
+      if (!stopover.perimeter_id) {
+        return {
+          success: false,
+          message: `Transfer ${transferIndex + 1}, Stopover ${stopoverIndex + 1}: perímetro de paragem é obrigatório.`,
+        };
+      }
+    });
+  });
+
+  return { valid: true };
+}
+
+export async function buildInsertTransferQuery(transferData) {
+  const { query, values } = buildInsertQuery(transferData);
+  return { query, values };
+}
+
+export async function insertTransferData(
   connection,
-  business,
-  idmo,
-  serviceData,
+  serviceId,
+  identifier,
+  transferData,
+) {
+  try {
+    const dataToInsert = {
+      ...transferData,
+      IDMOS: serviceId,
+    };
+
+    const { query, values } = buildInsertTransferQuery(dataToInsert);
+    const [result] = await connection.query(query, values);
+
+    if (!result.insertId) {
+      return {
+        success: false,
+        error: "Erro ao inserir transfer",
+      };
+    }
+
+    return createResponse(true, {
+      transferId: result.insertId,
+      identifier: identifier,
+    });
+  } catch (error) {
+    return createResponse(false, {}, { code: "E137", message: error.message });
+  }
+}
+
+export async function createServiceFromBooking(
+  connection,
+  channel,
+  serviceType,
+  serviceIndex = 0,
+  bookingJsonData,
   paxJsonData = null,
   validationOptions = {},
 ) {
   try {
-    // Validações iniciais
-    if (!idmo) {
-      return createResponse(false, {}, { code: "E116" });
-    }
-
-    validateServiceData(serviceData, validationOptions);
-
     // Validar reserva
-    const reservationResult = await validateReservationExists(
-      connection,
-      idmo,
-      business,
-    );
-    if (!reservationResult.success) {
-      return reservationResult;
+    const bookingResult = await validateBookingExists(connection, channel);
+    if (!bookingResult.success) {
+      return bookingResult;
     }
 
-    // Verificar duplicatas
-    const duplicate = await checkDuplicateService(
-      connection,
-      serviceData.identifier,
-      idmo,
-    );
-    if (duplicate && !duplicate.error) {
-      return createResponse(false, {}, { code: "E128" });
-    }
-    if (duplicate?.error) {
-      return duplicate;
-    }
-
-    // Preparar dados (passando o JSON do PAX como parâmetro)
-    const preparedData = prepareServiceData(
-      serviceData,
-      reservationResult.reservation,
-      paxJsonData,
+    // Extrair serviço específico da nova estrutura
+    const serviceItem = getServiceByTypeAndIndex(
+      bookingJsonData,
+      serviceType,
+      serviceIndex,
     );
 
+    if (
+      !serviceItem ||
+      !Object.keys(serviceItem).length ||
+      typeof serviceItem !== "object"
+    ) {
+      return {
+        success: false,
+        message: `Serviço do tipo '${serviceType}' não encontrado no índice ${serviceIndex}`,
+      };
+    }
+    // Validar dados do serviço
+    validateServiceData(serviceItem, validationOptions);
+
+    // Validação específica para transfers com stopovers
+    if (serviceType === SERVICE_TYPES.TRANSFER) {
+      const transferValidation = validateTransferServiceData(
+        bookingJsonData,
+        validationOptions,
+      );
+      if (!transferValidation.valid) {
+        return transferValidation;
+      }
+    }
+    // Preparar dados do serviço
+    const preparedData = prepareServiceData(serviceItem, bookingResult.booking);
     if (!preparedData) {
-      return createResponse(false, {});
+      return {
+        success: false,
+        error: "Erro ao preparar dados do serviço",
+      };
     }
 
-    // Inserir serviço
+    // Inserir serviço principal
     const { query, values } = buildInsertQuery(preparedData);
     const [result] = await connection.query(query, values);
 
     if (!result.insertId) {
-      return createResponse(false, {}, { code: "E127" });
+      return {
+        success: false,
+        error: "Erro ao inserir serviço",
+      };
     }
 
-    // Recuperar serviço inserido
-    const serviceResult = await getInsertedService(connection, result.insertId);
+    const serviceId = result.insertId;
+    // Se for transfer, processar stopovers
+    if (serviceType === SERVICE_TYPES.TRANSFER) {
+      const stopoversResult = await insertAllStopovers(
+        connection,
+        bookingJsonData,
+        serviceId,
+        preparedData.Identifier,
+        paxJsonData,
+      );
+
+      if (!stopoversResult.success) {
+        return stopoversResult;
+      }
+
+      // Recuperar serviço inserido
+      const serviceResult = await getInsertedService(connection, serviceId);
+      if (!serviceResult.success) {
+        return serviceResult;
+      }
+
+      return createResponse(true, {
+        service: serviceResult.service,
+        serviceId: serviceId,
+        serviceType: serviceType,
+        originalIndex: serviceIndex,
+        stopovers: stopoversResult,
+        message: `Transfer criado com ${stopoversResult.successCount} stopovers inseridos.`,
+      });
+    }
+
+    // Para outros tipos de serviço, retorno padrão
+    const serviceResult = await getInsertedService(connection, serviceId);
     if (!serviceResult.success) {
       return serviceResult;
     }
 
-    // Adicionar informações de PAX se disponíveis
-
-    let processedPax = [];
-    if (paxJsonData && serviceData.assignedPaxIds) {
-      processedPax = processPaxData(serviceData.assignedPaxIds, paxJsonData);
-    }
-
-    const responseData = {
-      service: serviceResult.service,
-      serviceId: result.insertId,
-      code: "S121",
-      message: messages["S121"] || "Operação realizada com sucesso",
-    };
-
-    if (processedPax.length > 0) {
-      responseData.paxData = processedPax;
-    }
-
     return createResponse(true, {
       service: serviceResult.service,
-      serviceId: result.insertId,
-      paxData: processedPax,
-      code: "S121",
-      message: messages["S121"] || "Operação realizada com sucesso",
+      serviceId: serviceId,
+      serviceType: serviceType,
+      originalIndex: serviceIndex,
+      message: messages["S121"] || "Serviço criado com sucesso",
     });
   } catch (error) {
-    console.error("Erro ao criar serviço:", error);
-    return createResponse(false, {}, { code: "E122" });
+    console.error("❌ Erro ao criar serviço:", error);
+    return {
+      success: false,
+      error: "E127",
+      message: messages["E127"] || error.message,
+    };
   }
 }
 
 // ============================================================================
-// FUNÇÕES ESPECÍFICAS (SIMPLIFICADAS)
+// FUNÇÃO CORRIGIDA PARA CRIAR TODOS OS SERVIÇOS
 // ============================================================================
 
-const createSpecificService =
-  (type) =>
-  (connection, business, idmo, serviceData, paxJsonData = null) => {
-    return createService(
-      connection,
-      business,
-      idmo,
-      { ...serviceData, type },
-      paxJsonData,
-    );
-  };
+export async function createAllServicesFromBooking(
+  connection,
+  channel,
+  bookingJsonData,
+  paxJsonData = {},
+  validationOptions = {},
+) {
+  try {
+    // Extrair todos os serviços
+    const allServices = await extractServicesFromBooking(bookingJsonData);
 
-export const createRoomService = createSpecificService(SERVICE_TYPES.ROOM);
-export const createTransferService = createSpecificService(
-  SERVICE_TYPES.TRANSFER,
-);
-export const createTicketService = createSpecificService(SERVICE_TYPES.TICKET);
-export const createRentalService = createSpecificService(SERVICE_TYPES.RENTAL);
-export const createTourService = createSpecificService(SERVICE_TYPES.TOUR);
-export const createInsuranceService = createSpecificService(
-  SERVICE_TYPES.INSURANCE,
-);
-export const createFlightService = createSpecificService(SERVICE_TYPES.FLIGHT);
-export const createMeetingService = createSpecificService(
-  SERVICE_TYPES.MEETING,
-);
-export const createNoteService = createSpecificService(SERVICE_TYPES.NOTE);
+    if (allServices.length === 0) {
+      return {
+        success: false,
+        error: "Nenhum serviço encontrado na reserva.",
+        message: messages["E123"] || "Nenhum serviço encontrado",
+      };
+    }
+
+    const results = [];
+    const errors = [];
+
+    // Processar cada serviço
+    for (const serviceItem of allServices) {
+      try {
+        const result = await createServiceFromBooking(
+          connection,
+          channel,
+          serviceItem.serviceGroup,
+          serviceItem.originalIndex,
+          bookingJsonData,
+          paxJsonData,
+          validationOptions,
+        );
+
+        if (result.success) {
+          results.push(result);
+        } else {
+          errors.push({
+            serviceType: serviceItem.serviceGroup,
+            index: serviceItem.originalIndex,
+            error: result.error,
+            message: result.message,
+          });
+        }
+      } catch (error) {
+        errors.push({
+          serviceType: serviceItem.serviceGroup,
+          index: serviceItem.originalIndex,
+          error: "E128",
+          message: error.message,
+        });
+      }
+    }
+    return createResponse(true, {
+      totalProcessed: allServices.length,
+      successCount: results.length,
+      errorCount: errors.length,
+      results: results,
+      errors: errors,
+      message: `Processados ${allServices.length} serviços. ${results.length} criados com sucesso, ${errors.length} com erro.`,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: "E128",
+      message: messages["E128"] || error.message,
+    };
+  }
+}
+
+export const createRoomService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.ROOM,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createTransferService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createTransferServiceWithStopovers(
+    connection,
+    channel,
+    SERVICE_TYPES.TRANSFER,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createTicketService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.TICKET,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createRentalService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.RENTAL,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createTourService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.TOUR,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createInsuranceService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.INSURANCE,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createFlightService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.FLIGHT,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createMeetingService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.MEETING,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export const createNoteService = (
+  connection,
+  channel,
+  bookingJsonData,
+  serviceIndex = 0,
+) => {
+  return createServiceFromBooking(
+    connection,
+    channel,
+    SERVICE_TYPES.NOTE,
+    serviceIndex,
+    bookingJsonData,
+  );
+};
+
+export function listServicesInBooking(bookingJsonData) {
+  const allServices = extractServicesFromBooking(bookingJsonData);
+  return allServices.map((service) => ({
+    type: service.type,
+    index: service.originalIndex,
+    identifier: service.identifier,
+    title: service.title,
+  }));
+}
+
+export function getServiceCount(bookingJsonData, serviceType = null) {
+  if (serviceType) {
+    return bookingJsonData?.service?.[serviceType]?.length || 0;
+  }
+
+  return extractServicesFromBooking(bookingJsonData).length;
+}
+
+export function getServicesFromBooking(bookingJsonData) {
+  return extractServicesFromBooking(bookingJsonData);
+}
