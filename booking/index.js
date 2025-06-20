@@ -6,7 +6,9 @@ import { pool, testConnection } from "./config/database.js";
 import { promises as fs } from "fs";
 import * as path from "path";
 import GCSClient from "./features/google/index.js";
-//import modificationRoutes from "./features/modification/index.js";
+import swagger from "@fastify/swagger";
+import swaggerUI from "@fastify/swagger-ui";
+import swaggerDocs from "../swagger.json" assert { type: "json" }; // eslint-disable-line;
 
 const fastify = Fastify({
   logger: true,
@@ -29,6 +31,22 @@ const VALID_TYPES = ["reservation"];
 const API_HANDLERS = {
   reservation: reservationRoutes,
 };
+
+await fastify.register(swagger, {
+  mode: "static",
+  specification: {
+    document: swaggerDocs, // usa seu arquivo JSON existente
+  },
+});
+
+// Registra o Swagger UI
+await fastify.register(swaggerUI, {
+  routePrefix: "/v2/docs",
+  uiConfig: {
+    docExpansion: "full",
+    deepLinking: false,
+  },
+});
 
 export async function loadErrorMessages(lang) {
   const filePath = path.join(
@@ -108,6 +126,7 @@ const start = async () => {
   try {
     await fastify.listen({ port: 3000, host: "0.0.0.0" });
     console.log(`Server running on port http://localhost:${3000}/v2`);
+    console.log(`Swagger UI: http://localhost:${3000}/v2/docs`);  
   } catch (error) {
     throw new Error(error);
   }
