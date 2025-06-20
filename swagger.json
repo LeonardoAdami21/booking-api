@@ -1,0 +1,1398 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Travel Booking API",
+    "description": "API para gerenciamento de reservas de viagem incluindo hospedagem, voos, tours, transfers, seguros e aluguel de veículos.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "api@travelagency.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Reservation"
+    }
+  ],
+  "paths": {
+    "/v2/:type": {
+      "post": {
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["reservation", "cancelation", "search", "modification"]
+            }
+          }
+        ],
+        "operationId": "createBooking",
+        "x-parameters": {
+          "type": "reservation"
+        },
+        "summary": "Criar nova reserva",
+        "description": "Cria uma nova reserva de viagem com todos os serviços incluídos",
+        "tags": ["Reservation"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reserva criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados inválidos"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "/bookings/{id}": {
+      "get": {
+        "summary": "Obter reserva por ID",
+        "description": "Retorna os detalhes de uma reserva específica",
+        "tags": ["Bookings"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID da reserva"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva encontrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reserva não encontrada"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BookingRequest": {
+        "type": "object",
+        "required": ["type", "channel", "create"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["create", "update", "cancel"]
+          },
+          "channel": {
+            "type": "string",
+            "description": "ID do canal de reserva"
+          },
+          "create": {
+            "$ref": "#/components/schemas/BookingCreate"
+          }
+        }
+      },
+      "BookingResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "create": {
+            "$ref": "#/components/schemas/BookingCreate"
+          }
+        }
+      },
+      "BookingCreate": {
+        "type": "object",
+        "required": [
+          "status",
+          "createdAt",
+          "language",
+          "currency",
+          "timezone",
+          "period",
+          "issuer",
+          "customer"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "pending", "cancelled"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmation": {
+            "type": "string",
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "example": "pt-br"
+          },
+          "currency": {
+            "type": "string",
+            "example": "BRL"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "America/Sao_Paulo"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/Channel"
+          },
+          "issuer": {
+            "$ref": "#/components/schemas/Issuer"
+          },
+          "customer": {
+            "$ref": "#/components/schemas/Customer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "pax": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Passenger"
+            }
+          },
+          "service": {
+            "$ref": "#/components/schemas/Services"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Total"
+          },
+          "information": {
+            "type": "string"
+          },
+          "schedule": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Period": {
+        "type": "object",
+        "required": ["start", "end"],
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "Channel": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "booking": {
+            "type": "string"
+          },
+          "outsourced": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "postal": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Coordinates"
+          }
+        }
+      },
+      "Coordinates": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "format": "double"
+          },
+          "lng": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "Issuer": {
+        "type": "object",
+        "required": ["id", "name", "email"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "reference": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nick": {
+            "type": "string"
+          },
+          "document": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "website": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          }
+        }
+      },
+      "Customer": {
+        "type": "object",
+        "required": ["id", "firstName", "lastName", "email"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "foreign": {
+            "type": "boolean"
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female", "other"]
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["CPF", "RG", "PASSPORT"]
+          },
+          "number": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "reference": {
+            "type": "integer"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "Passenger": {
+        "type": "object",
+        "properties": {
+          "main": {
+            "type": "boolean"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "country": {
+            "type": "string"
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "birthdate": {
+            "type": "string",
+            "format": "date"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female", "other"]
+          },
+          "ageGroup": {
+            "type": "string",
+            "enum": ["infant", "child", "adult", "senior"]
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/Assignment"
+          }
+        }
+      },
+      "Assignment": {
+        "type": "object",
+        "properties": {
+          "rental": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ticket": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "room": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "transfer": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "flight": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tour": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "insurance": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "Services": {
+        "type": "object",
+        "properties": {
+          "room": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Room"
+            }
+          },
+          "tour": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tour"
+            }
+          },
+          "transfer": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transfer"
+            }
+          },
+          "ticket": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ticket"
+            }
+          },
+          "insurance": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Insurance"
+            }
+          },
+          "flight": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Flight"
+            }
+          },
+          "rental": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Rental"
+            }
+          }
+        }
+      },
+      "ServiceBase": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "scheduled", "pending", "cancelled"]
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confirmation": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "image": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/Provider"
+          },
+          "connector": {
+            "$ref": "#/components/schemas/Connector"
+          },
+          "checkin": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "checkout": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cancellation": {
+            "$ref": "#/components/schemas/Cancellation"
+          },
+          "policies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Policy"
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "break": {
+            "$ref": "#/components/schemas/Break"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "package": {
+            "$ref": "#/components/schemas/Package"
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/Pricing"
+          },
+          "exchange": {
+            "$ref": "#/components/schemas/Exchange"
+          },
+          "assigned": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "information": {
+            "type": "string"
+          },
+          "pax": {
+            "$ref": "#/components/schemas/PaxCount"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repository": {
+            "type": "object"
+          }
+        }
+      },
+      "Room": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["room"]
+              },
+              "room": {
+                "$ref": "#/components/schemas/RoomDetails"
+              },
+              "board": {
+                "$ref": "#/components/schemas/Board"
+              },
+              "star": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "facilities": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Tour": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["tour"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["shared", "private"]
+              },
+              "included": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/IncludedItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Transfer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["transfer"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["shared", "private"]
+              },
+              "included": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/IncludedItem"
+                }
+              },
+              "stopover": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Stopover"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Ticket": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["ticket"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["individual", "group"]
+              },
+              "included": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/IncludedItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Insurance": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["insurance"]
+              },
+              "coverage": {
+                "type": "string"
+              },
+              "plan": {
+                "type": "string"
+              },
+              "policy": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InsuranceDetail"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Flight": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["flight"]
+              },
+              "source": {
+                "type": "string"
+              },
+              "trip": {
+                "type": "string",
+                "enum": ["oneway", "roundtrip"]
+              },
+              "iata": {
+                "$ref": "#/components/schemas/IATA"
+              },
+              "segments": {
+                "$ref": "#/components/schemas/FlightSegments"
+              }
+            }
+          }
+        ]
+      },
+      "Rental": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ServiceBase"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["rental"]
+              },
+              "acriss": {
+                "type": "string"
+              },
+              "pickUp": {
+                "$ref": "#/components/schemas/RentalLocation"
+              },
+              "dropOff": {
+                "$ref": "#/components/schemas/RentalLocation"
+              },
+              "class": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/components/schemas/RentalDetails"
+              },
+              "coverage": {
+                "$ref": "#/components/schemas/RentalCoverage"
+              },
+              "optionals": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RentalOptional"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RoomDetails": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/CodeValue"
+          },
+          "capacity": {
+            "$ref": "#/components/schemas/CodeValue"
+          },
+          "amenities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Board": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "CodeValue": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "IncludedItem": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "Stopover": {
+        "type": "object",
+        "properties": {
+          "perimeter_id": {
+            "type": "integer"
+          },
+          "estimated": {
+            "$ref": "#/components/schemas/EstimatedTimes"
+          },
+          "driver": {
+            "$ref": "#/components/schemas/Driver"
+          },
+          "number": {
+            "type": "string"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/Vehicle"
+          }
+        }
+      },
+      "EstimatedTimes": {
+        "type": "object",
+        "properties": {
+          "departure": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "arrival": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Driver": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "iata": {
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Coordinates"
+          }
+        }
+      },
+      "Vehicle": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer"
+          },
+          "plate": {
+            "type": "string"
+          }
+        }
+      },
+      "InsuranceDetail": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "IATA": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "FlightSegments": {
+        "type": "object",
+        "properties": {
+          "departure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlightSegment"
+            }
+          },
+          "return": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FlightSegment"
+            }
+          }
+        }
+      },
+      "FlightSegment": {
+        "type": "object",
+        "properties": {
+          "airline": {
+            "$ref": "#/components/schemas/Airline"
+          },
+          "flight": {
+            "$ref": "#/components/schemas/FlightInfo"
+          },
+          "baggage": {
+            "$ref": "#/components/schemas/Baggage"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/Airport"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/Airport"
+          },
+          "times": {
+            "$ref": "#/components/schemas/FlightTimes"
+          },
+          "gate": {
+            "type": "integer"
+          },
+          "meals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Meal"
+            }
+          },
+          "connection": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "Airline": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "FlightInfo": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "equipment": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string"
+          },
+          "tariff": {
+            "type": "string"
+          },
+          "family": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          }
+        }
+      },
+      "Baggage": {
+        "type": "object",
+        "properties": {
+          "checked": {
+            "$ref": "#/components/schemas/BaggageInfo"
+          },
+          "hand": {
+            "$ref": "#/components/schemas/BaggageInfo"
+          }
+        }
+      },
+      "BaggageInfo": {
+        "type": "object",
+        "properties": {
+          "included": {
+            "type": "boolean"
+          },
+          "quantity": {
+            "type": "integer"
+          },
+          "weight": {
+            "$ref": "#/components/schemas/Weight"
+          }
+        }
+      },
+      "Weight": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "Airport": {
+        "type": "object",
+        "properties": {
+          "iata": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Coordinates"
+          }
+        }
+      },
+      "FlightTimes": {
+        "type": "object",
+        "properties": {
+          "estimated_departure": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "estimated_arrival": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Meal": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "diet": {
+            "type": "string"
+          },
+          "included": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RentalLocation": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "coordinates": {
+            "$ref": "#/components/schemas/Coordinates"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        }
+      },
+      "RentalDetails": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "fuel": {
+            "type": "string"
+          },
+          "doors": {
+            "type": "string"
+          },
+          "luggage": {
+            "type": "string"
+          },
+          "luggage_details": {
+            "$ref": "#/components/schemas/LuggageDetails"
+          },
+          "passenger": {
+            "type": "string"
+          },
+          "transmission": {
+            "type": "string"
+          },
+          "air_conditioning": {
+            "type": "string"
+          }
+        }
+      },
+      "LatLng": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        }
+      },
+      "LuggageDetails": {
+        "type": "object",
+        "properties": {
+          "hand": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Provider": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "Connector": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "Cancellation": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "Policy": {
+      "type": "object",
+      "properties": {
+        "number": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string"
+        }
+      }
+    },
+    "User": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "Break": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

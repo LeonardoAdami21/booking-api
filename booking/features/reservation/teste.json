@@ -96,9 +96,9 @@
         {
           "status": "confirmed",
           "identifier": "ROOM2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2024-06-16T18:46:00-03:00",
+          "expiresAt": "2024-06-16T18:46:00-03:00",
+          "confirmation": "2024-06-22T18:46:00-03:00",
           "image": [
             "https://example.com/images/hotelroom1.jpg",
             "https://example.com/images/hotelroom2.jpg"
@@ -125,7 +125,8 @@
           "star": 4,
           "facilities": ["WIFI", "SAFE", "SHWR", "AIRCON", "MINIBAR"],
           "provider": {
-            "code": 162,
+            "id": 123,
+            "xref": 162,
             "name": "Hotel Supplier Ltda",
             "email": "contato@hotelsupplier.com",
             "website": "https://www.hotelsupplier.com",
@@ -146,10 +147,19 @@
           },
           "connector": {
             "name": "hotelbeds",
-            "booking": "258-5337575"
+            "booking": "258-5337575",
+            "code": "123"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -248,9 +258,9 @@
         {
           "status": "scheduled",
           "identifier": "TOUR2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "image": [
             "https://example.com/images/bonde-serra1.jpg",
             "https://example.com/images/bonde-serra2.jpg"
@@ -269,6 +279,14 @@
               "description": "Ingresso para o passeio de bonde"
             }
           ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
           "provider": {
             "code": 201,
             "name": "Serra Turismo Ltda",
@@ -293,8 +311,8 @@
             "name": "localtour",
             "booking": "LT-2024-001"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -393,9 +411,9 @@
         {
           "status": "scheduled",
           "identifier": "TRF2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "image": [
             "https://example.com/images/transfer-van1.jpg",
             "https://example.com/images/transfer-van2.jpg"
@@ -414,13 +432,23 @@
               "description": "Seguro viagem incluso"
             }
           ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
           "stopover": [
             {
+              "perimeter_id": 123,
               "estimated": {
                 "departure": "2024-08-08T16:40:00-03:00",
                 "arrival": "2024-08-08T18:15:00-03:00"
               },
               "driver": {
+                "id": 1,
                 "name": "João Silva",
                 "phone": "+55 71 98765-4321"
               },
@@ -457,6 +485,7 @@
             }
           ],
           "provider": {
+            "id": 201,
             "code": 201,
             "name": "Transfers Bahia",
             "email": "reservas@transfersbahia.com",
@@ -480,8 +509,8 @@
             "name": "civitatis",
             "booking": "CIV-443212"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -580,9 +609,9 @@
         {
           "status": "scheduled",
           "identifier": "TICKET2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "image": [
             "https://example.com/images/terra-magica1.jpg",
             "https://example.com/images/terra-magica2.jpg"
@@ -597,7 +626,16 @@
               "description": "Acesso a todas as atrações do parque"
             }
           ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
           "provider": {
+            "id": 202,
             "code": 202,
             "name": "Florybal Turismo e Eventos",
             "email": "contato@florybal.com.br",
@@ -621,8 +659,8 @@
             "name": "florybal-api",
             "booking": "FLY-API-01"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -721,9 +759,9 @@
         {
           "status": "confirmed",
           "identifier": "INS2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "image": ["https://globalseguros.com/policy/GLB123456789"],
           "type": "insurance",
           "title": "Seguro Viagem América do Sul",
@@ -751,7 +789,16 @@
               "currency": "USD"
             }
           ],
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
           "provider": {
+            "id": 1,
             "code": 210,
             "name": "Global Seguros",
             "email": "atendimento@globalseguros.com",
@@ -775,8 +822,8 @@
             "name": "segconnect",
             "booking": "SC-889456"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -871,9 +918,9 @@
         {
           "status": "scheduled",
           "identifier": "TICKET2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "source": "manual",
           "type": "flight",
           "trip": "oneway",
@@ -1030,6 +1077,14 @@
               }
             ]
           },
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
+          },
           "provider": {
             "code": 503,
             "name": "Latam"
@@ -1038,8 +1093,8 @@
             "name": "latam-api",
             "booking": "LATAM-API-01"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
@@ -1138,9 +1193,9 @@
         {
           "status": "scheduled",
           "identifier": "RENTAL2024071712135051625",
-          "createdAt": "2024-04-16T18:46:00-03:00",
-          "expiresAt": "2024-04-16T18:46:00-03:00",
-          "confirmation": "2024-04-16T18:46:00-03:00",
+          "createdAt": "2025-06-16T18:46:00-03:00",
+          "expiresAt": "2025-06-16T18:46:00-03:00",
+          "confirmation": "2025-06-16T18:46:00-03:00",
           "type": "rental",
           "title": "Chevrolet Onix Plus / Fiat Cronos | Volks - Unidas",
           "image": [
@@ -1162,6 +1217,14 @@
             },
             "phone": "+55 21 2042-3842",
             "email": "rio1@unidas.com.br"
+          },
+          "user": {
+            "id": 438,
+            "reference": 4004,
+            "firstName": "Maria",
+            "lastName": "Souza",
+            "phone": "+55 11 99999-8888",
+            "email": "maria.souza@agencia.com"
           },
           "dropOff": {
             "code": "BTAM",
@@ -1246,8 +1309,8 @@
             "name": "unidas-api",
             "booking": "UNIDAS-API-01"
           },
-          "checkin": "2024-07-24T00:00:00-03:00",
-          "checkout": "2024-07-28T00:00:00-03:00",
+          "checkin": "2025-07-24T00:00:00-03:00",
+          "checkout": "2025-07-28T00:00:00-03:00",
           "cancellation": {
             "currency": "BRL",
             "rules": [
